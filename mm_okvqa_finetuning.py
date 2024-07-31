@@ -1,5 +1,4 @@
 import argparse
-import numpy as np
 import sys
 import json
 import random
@@ -22,13 +21,6 @@ from torchvision import transforms, datasets
 from transformers.modeling_outputs import SequenceClassifierOutput
 import transformers
 from transformers import OFATokenizer, OFAModel
-
-
-## Compute accuracy
-def accuracy_score(y_true, y_pred):
-    y_pred = np.concatenate(tuple(y_pred))
-    y_true = np.concatenate(tuple([[t for t in y] for y in y_true])).reshape(y_pred.shape)
-    return (y_true == y_pred).sum() / float(len(y_true))
 
 def to_one_hot(y_tensor, n_dims=None):
     """ Take integer y (tensor or variable) with n dims and convert it to 1-hot representation with n+1 dims. """
@@ -269,21 +261,6 @@ class OKVQADataModule(pl.LightningDataModule):
         }
         return data.DataLoader(dataset, **params)
 
-## wandb logger Callback
-"""
-class LoggingCallback(pl.Callback):
-    def on_epoch_end(self, trainer, pl_module):
-        wandb.log({
-            "epoch": trainer.current_epoch,
-            "best_train_loss": pl_module.best_val_loss,
-            "best_train_accuracy": pl_module.best_val_accuracy
-            "best_val_loss": pl_module.best_val_loss,
-            "best_val_accuracy": pl_module.best_val_accuracy
-            "best_test_loss": pl_module.best_test_loss,
-            "best_test_accuracy": pl_module.best_test_accuracy
-        })
-"""
-        
 ## Parse arguments
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -376,11 +353,7 @@ def parse_args():
     parser.add_argument(
         "--grid_size", type=int, default=32, help="The size of the grid for the location encoding."
     )
-    
-    parser.add_argument(
-        "--num_epochs", type=int, default=10000, help="The maximun number of training epochs." ##################################################### TODO GERO KENDU 
-    )
-    
+
     parser.add_argument(
         "--seed", type=int, default=-1, help="Seed."
     )
@@ -429,9 +402,9 @@ def main():
 
     else:
         raise NotImplementedError
-    
+       
     print("Dataset loaded!")
-    
+
     print("\n-----------------------------")
     print("DATAMODULE PROBAK")
     dataloader = datamodule.train_dataloader()
@@ -448,8 +421,7 @@ def main():
 
     print(f'dataloader length: {len(dataloader)}')
     print("-----------------------------\n")
-    
-    
+       
     # Define checkpoint filename and tensorboard run name
     if args.run_name == None:
         print('A run name has to be provided')
@@ -468,8 +440,8 @@ def main():
     # Define trainer
     print(f'gpus: {args.gpus}')
     
-    #logger = TensorBoardLogger("logs", name=tb_run_name, default_hp_metric=False)
-    logger = WandbLogger(project=tb_run_name)
+    logger = TensorBoardLogger("logs", name=tb_run_name, default_hp_metric=False)
+    #logger = WandbLogger(project=tb_run_name)
     
     # Use ModelCheckPoint to store best validation model
     checkpoint_callback = ModelCheckpoint(
@@ -497,8 +469,7 @@ def main():
             devices=args.gpus, 
             fast_dev_run=False, 
             logger=logger, 
-            max_steps=args.max_steps, 
-            #max_epochs=args.num_epochs, #TODO gero kendu!
+            max_steps=args.max_steps,
             accumulate_grad_batches=args.accumulate_grad_batches, 
             strategy=deepspeed, 
             precision=args.precision)
