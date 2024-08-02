@@ -405,23 +405,6 @@ def main():
        
     print("Dataset loaded!")
 
-    print("\n-----------------------------")
-    print("DATAMODULE PROBAK")
-    dataloader = datamodule.train_dataloader()
-    
-    for batch in dataloader:
-        images, questions, answers, _ = batch
-        answers = list(zip(*answers))
-        
-        print(f'Batch size: {len(images)}')
-        print('Image shape:', images[0].shape)
-        print('Question:', questions[0])
-        print('Answers:', answers[0])
-        break
-
-    print(f'dataloader length: {len(dataloader)}')
-    print("-----------------------------\n")
-       
     # Define checkpoint filename and tensorboard run name
     if args.run_name == None:
         print('A run name has to be provided')

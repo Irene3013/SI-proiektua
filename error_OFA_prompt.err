@@ -9,7 +9,9 @@ TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
 HPU available: False, using: 0 HPUs
 Missing logger folder: logs/ofa_base_okvqa
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
 
   | Name  | Type             | Params
 -------------------------------------------
@@ -22,82 +24,8 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 728.954   Total estimated model params size (MB)
 SLURM auto-requeueing enabled. Setting signal handlers.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
-Traceback (most recent call last):
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 500, in <module>
-    main()
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 482, in main
-    trainer.fit(model, datamodule)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 520, in fit
-    call._call_and_handle_interrupt(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 44, in _call_and_handle_interrupt
-    return trainer_fn(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 559, in _fit_impl
-    self._run(model, ckpt_path=ckpt_path)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 935, in _run
-    results = self._run_stage()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 978, in _run_stage
-    self.fit_loop.run()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 201, in run
-    self.advance()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 354, in advance
-    self.epoch_loop.run(self._data_fetcher)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 133, in run
-    self.advance(data_fetcher)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 218, in advance
-    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 185, in run
-    self._optimizer_step(kwargs.get("batch_idx", 0), closure)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 261, in _optimizer_step
-    call._call_lightning_module_hook(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 142, in _call_lightning_module_hook
-    output = fn(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/core/module.py", line 1265, in optimizer_step
-    optimizer.step(closure=optimizer_closure)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/core/optimizer.py", line 158, in step
-    step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 224, in optimizer_step
-    return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/plugins/precision/precision_plugin.py", line 114, in optimizer_step
-    return optimizer.step(closure=closure, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/optim/lr_scheduler.py", line 65, in wrapper
-    return wrapped(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/optim/optimizer.py", line 88, in wrapper
-    return func(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
-    return func(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/optim/adamw.py", line 100, in step
-    loss = closure()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/plugins/precision/precision_plugin.py", line 101, in _wrap_closure
-    closure_result = closure()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 140, in __call__
-    self._result = self.closure(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 126, in closure
-    step_output = self._step_fn()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 308, in _training_step
-    training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 288, in _call_strategy_hook
-    output = fn(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 366, in training_step
-    return self.model.training_step(*args, **kwargs)
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 156, in training_step
-    return self.step(batch, split="train")
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 139, in step
-    gen_outputs = self.model.generate(input_ids, patch_images=patch_images, num_beams=5, no_repeat_ngram_size=3)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
-    return func(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/generation_utils.py", line 1316, in generate
-    return self.beam_search(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/generation_utils.py", line 2159, in beam_search
-    outputs = self(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1110, in _call_impl
-    return forward_call(*input, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/models/ofa/modeling_ofa.py", line 1905, in forward
-    decoder_outputs = self.decoder(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1110, in _call_impl
-    return forward_call(*input, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/models/ofa/modeling_ofa.py", line 1617, in forward
-    cross_abs_pos_bias = self.get_pos_info(tgt_pos_embed, src_pos_embed=src_pos_embed)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/models/ofa/modeling_ofa.py", line 1455, in get_pos_info
-    abs_pos_bias = torch.matmul(pos_q, pos_k.transpose(2, 3))
-RuntimeError: CUDA out of memory. Tried to allocate 144.00 MiB (GPU 0; 23.50 GiB total capacity; 18.41 GiB already allocated; 101.38 MiB free; 21.60 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
-srun: error: localhost: task 0: Exited with exit code 1
+`Trainer.fit` stopped: `max_steps=20000` reached.
+Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.01.ckpt
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
+Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.01.ckpt
+SLURM auto-requeueing enabled. Setting signal handlers.
