@@ -172,7 +172,6 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
         self.root = root
         self.split = split
-        self.images = os.listdir(os.path.join(root, self.split, self.split))
 
         with open(os.path.join(root, self.split, f'annotations_{self.split}.json'), "r") as f:
             self.annotations = json.load(f)
@@ -183,20 +182,21 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
             self.transform = transforms.ToTensor()
 
   def __getitem__(self, index):
-
-        # Process image
-        img_path = os.path.join(self.root, self.split, self.split, self.images[index])
-        image = Image.open(img_path).convert("RGB")
-        image = self.transform(image)
-
         # Process annotations
         annotation = self.annotations["annotations"][index]
         question = annotation["question"]
         answers = [str(ans["raw_answer"]) for ans in annotation["answers"]]
+
+        # Process image
+        image_id = annotation["image_id"]
+        image_name = f'okvqa_{self.split}_{str(image_id).zfill(12)}.jpg'
+        img_path = os.path.join(self.root, self.split, self.split, image_name)
+        image = Image.open(img_path).convert("RGB")
+        image = self.transform(image)
         return image, question, list(answers) , random.choice(list(answers))
 
   def __len__(self):
-        return len(self.images)
+        return len(self.annotations["annotations"])
 
 ## Data Module
 class OKVQADataModule(pl.LightningDataModule):
