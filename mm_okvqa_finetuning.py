@@ -41,9 +41,12 @@ def preprocess_prediction(pred):
 
 def compute_accuracy_score(y_true, y_pred):
     total_acc = 0
+    register = []
     for true_targets, pred in zip(y_true, y_pred):
-        total_acc += okvqa_accuracy_score(true_targets, preprocess_prediction(pred))
-    return total_acc / len(y_pred)
+        acc = okvqa_accuracy_score(true_targets, preprocess_prediction(pred))
+        register.append([true_targets, pred, acc])
+        total_acc += acc
+    return total_acc / len(y_pred), register
 
   
 ## Load model
@@ -86,7 +89,8 @@ class LitModel(pl.LightningModule):
         self.pretrained_on = None
         self.prev_num_labels = 0
 
-        self.predictions = []
+        self.predictions = "predictions.txt"
+        self.info = "info.txt"
 
     def configure_optimizers(self):
         # Define optimizer and scheduler
@@ -133,10 +137,60 @@ class LitModel(pl.LightningModule):
             # Compute loss
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
             label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids.to(self.device)
-            loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids[:, 1:].reshape(-1))
-            
+
+            # Register info
+            with open(self.info, 'a') as f1:
+
+              # Obtener las formas de los tensores para ver el rango válido de índices
+              batch_size, seq_len, _ = outputs["logits"].shape
+              _, label_seq_len = label_ids[:, 1:].shape
+
+              # Asegúrate de que la longitud de la secuencia en `lsabel_ids` sea la misma que en `logits`
+              assert seq_len == label_seq_len, "Longitudes de secuencia no coinciden entre logits y etiquetas"
+
+              f1.write(f"\nALINEATION CHECK \n")
+              # Iterar a través de todos los ejemplos en el lote
+              for example_idx in range(batch_size):  # images.size(0) es el tamaño del lote
+
+                  # Iterar a través de todass las posiciones de la secuencia
+                  for sequence_idx in range(seq_len):  # input_ids.size(1) es la longitud de la secuencia
+                      if sequence_idx >= label_seq_len:  # Verificar que no estamos fuera del rango de `label_ids`
+                          continue
+                      
+                      # Obtener los logits y etiquetas antes del reshape
+                      logits_example = outputs["logits"][example_idx, sequence_idx]
+                      label_example = label_ids[example_idx, sequence_idx+1]
+
+                      max_len = 10 + len("Pred: ") + 2
+
+                      # Decodificar para verificar
+                      pred_token = torch.argmax(logits_example).item()
+                      pred_word = self.tokenizer.decode([pred_token])
+                      true_word = self.tokenizer.decode([label_example.item()])
+
+                      pred_str = f"Pred: {pred_word}".ljust(max_len + 2)
+                      true_str = f"True: {true_word}"
+
+                      # Escribir en el archivo
+                      f1.write(f"{pred_str}{true_str}\n")
+                  f1.write(f"\n")
+
+              loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids[:, 1:].reshape(-1))
+
+              f1.write(f"LOSS: {loss} \n")
+              f1.write(f'------------------------- \n')
+
             # Generate output (to compute accuracy)
-            gen_outputs = self.model.generate(input_ids, patch_images=patch_images, num_beams=5, no_repeat_ngram_size=3)
+            #gen_outputs = self.model.generate(input_ids, patch_images=patch_images, num_beams=5, no_repeat_ngram_size=3)
+            gen_outputs = self.model.generate(
+                input_ids,
+                patch_images=patch_images,
+                num_beams=5,  # Ajustar según sea necesario
+                no_repeat_ngram_size=3,  # Evitar la repetición de bigramas
+                repetition_penalty=1.3,  # Penalización por repetición
+                max_length=50,  # Longitud máxima de la secuencia generada
+                early_stopping=True  # Detenerse si se ha alcanzado el final de la secuencia
+            )
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
         
         else:
@@ -147,8 +201,15 @@ class LitModel(pl.LightningModule):
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
         
         # Compute Accuracy
-        accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
+        accuracy, register = compute_accuracy_score(list(zip(*all_targets)), pred_text)
         self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
+
+        # Register predictons
+        with open(self.predictions, 'a') as f2:
+          for reg in register:
+            f2.write(f'\n True labels: {reg[0]} \n Prediction: {reg[1]} \n Accuracy: {reg[2]} \n')
+          f2.write(f'BATCH ACCURACY {accuracy} \n')
+          f2.write(f'------------------------- \n')
         
         return loss
 
@@ -475,8 +536,6 @@ def main():
         print('Testing starts!')
         trainer.test(model=model, dataloaders=datamodule.test_dataloader(), verbose=False)
         print('Testing finished!')
-    
-    #wandb.finish()
     
 
 if __name__ == "__main__":
