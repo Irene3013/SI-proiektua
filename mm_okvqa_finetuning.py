@@ -102,7 +102,21 @@ class LitModel(pl.LightningModule):
         }
 
         self.params = {key: random.choice(values) for key, values in self.search_space.items()}
+
+        # output
+        self.predictions = f"/out/Predictions/predictions_{self.iteration}.txt"
+        self.info = f"/out/Info/info.txt_{self.iteration}.txt"
         self.rs = f"/out/RandomSearch/RandomSearch_{self.iteration}.txt"
+
+        # create directory if needed
+        os.makedirs(os.path.dirname(self.predictions), exist_ok=True)
+        os.makedirs(os.path.dirname(self.info), exist_ok=True)
+        os.makedirs(os.path.dirname(self.rs), exist_ok=True)
+
+        # delete file content or create new file
+        with open(self.predictions, 'w') as f: pass
+        with open(self.info, 'w') as f: pass
+        with open(self.rs, 'w') as f: pass
 
         with open(self.rs, 'a') as f0:
           f0.write(f'ITERATION {self.iteration} \n')
@@ -114,10 +128,6 @@ class LitModel(pl.LightningModule):
           f0.write(f'-> top_k:  {self.params["top_k"]} \n')
           f0.write(f'-> top_p:  {self.params["top_p"]} \n')
           f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
-
-        # output
-        self.predictions = f"/out/Predictions/predictions_{self.iteration}.txt"
-        self.info = f"/out/Info/info.txt_{self.iteration}.txt"
         
     def configure_optimizers(self):
         # Define optimizer and scheduler
