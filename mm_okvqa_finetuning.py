@@ -104,9 +104,9 @@ class LitModel(pl.LightningModule):
         self.params = {key: random.choice(values) for key, values in self.search_space.items()}
 
         # output
-        self.predictions = f"/out/Predictions/predictions_{self.iteration}.txt"
-        self.info = f"/out/Info/info.txt_{self.iteration}.txt"
-        self.rs = f"/out/RandomSearch/RandomSearch_{self.iteration}.txt"
+        self.predictions = f"./output/Predictions/predictions_{self.iteration}.txt"
+        self.info = f"./output/Info/info.txt_{self.iteration}.txt"
+        self.rs = f"./output/RandomSearch/RandomSearch_{self.iteration}.txt"
 
         # create directory if needed
         os.makedirs(os.path.dirname(self.predictions), exist_ok=True)
