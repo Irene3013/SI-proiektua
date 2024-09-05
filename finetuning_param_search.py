@@ -18,7 +18,7 @@ args = [
     "--root", "/gaueko0/users/ietxarri010/GrAL_Irene/okvqa"
 ]
 
-iterkop = 10
+iterkop = 5
 
 for i in range(iterkop):
     try:
