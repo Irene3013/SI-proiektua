@@ -89,9 +89,36 @@ class LitModel(pl.LightningModule):
         self.pretrained_on = None
         self.prev_num_labels = 0
 
-        self.predictions = "predictions.txt"
-        self.info = "info.txt"
+        #RandomSearch
+        self.iteration = args.iteration
+        self.search_space = {
+            'num_beams': [5, 7, 10],
+            'no_repeat_ngram_size': [1],
+            'repetition_penalty': [1.5, 2.0],
+            'temperature': [0.7, 0.8, 1.0],
+            'top_k': [10, 20, 50],
+            'top_p': [0.7, 0.8],
+            'max_length': [20, 50]
+        }
 
+        self.params = {key: random.choice(values) for key, values in self.search_space.items()}
+        self.rs = f"/out/RandomSearch/RandomSearch_{self.iteration}.txt"
+
+        with open(self.rs, 'a') as f0:
+          f0.write(f'ITERATION {self.iteration} \n')
+          f0.write(f'\nPARAMS:\n')
+          f0.write(f'-> num_beams:  {self.params["num_beams"]} \n')
+          f0.write(f'-> no_repeat_ngram_size:  {self.params["no_repeat_ngram_size"]} \n')
+          f0.write(f'-> repetition_penalty:  {self.params["repetition_penalty"]} \n')
+          f0.write(f'-> temperature:  {self.params["temperature"]} \n')
+          f0.write(f'-> top_k:  {self.params["top_k"]} \n')
+          f0.write(f'-> top_p:  {self.params["top_p"]} \n')
+          f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
+
+        # output
+        self.predictions = f"/out/Predictions/predictions_{self.iteration}.txt"
+        self.info = f"/out/Info/info.txt_{self.iteration}.txt"
+        
     def configure_optimizers(self):
         # Define optimizer and scheduler
         """
@@ -141,18 +168,12 @@ class LitModel(pl.LightningModule):
             # Register info
             with open(self.info, 'a') as f1:
 
-              # Obtener las formas de los tensores para ver el rango válido de índices
               batch_size, seq_len, _ = outputs["logits"].shape
               _, label_seq_len = label_ids[:, 1:].shape
 
-              # Asegúrate de que la longitud de la secuencia en `lsabel_ids` sea la misma que en `logits`
-              assert seq_len == label_seq_len, "Longitudes de secuencia no coinciden entre logits y etiquetas"
-
-              f1.write(f"\nALINEATION CHECK \n")
-              # Iterar a través de todos los ejemplos en el lote
               for example_idx in range(batch_size):  # images.size(0) es el tamaño del lote
 
-                  # Iterar a través de todass las posiciones de la secuencia
+                  # Iterar a través de todas las posiciones de la secuencia
                   for sequence_idx in range(seq_len):  # input_ids.size(1) es la longitud de la secuencia
                       if sequence_idx >= label_seq_len:  # Verificar que no estamos fuera del rango de `label_ids`
                           continue
@@ -181,15 +202,17 @@ class LitModel(pl.LightningModule):
               f1.write(f'------------------------- \n')
 
             # Generate output (to compute accuracy)
-            #gen_outputs = self.model.generate(input_ids, patch_images=patch_images, num_beams=5, no_repeat_ngram_size=3)
             gen_outputs = self.model.generate(
-                input_ids,
-                patch_images=patch_images,
-                num_beams=5,  # Ajustar según sea necesario
-                no_repeat_ngram_size=3,  # Evitar la repetición de bigramas
-                repetition_penalty=1.3,  # Penalización por repetición
-                max_length=50,  # Longitud máxima de la secuencia generada
-                early_stopping=True  # Detenerse si se ha alcanzado el final de la secuencia
+                    input_ids=input_ids,
+                    patch_images=patch_images,
+                    num_beams=self.params['num_beams'],
+                    no_repeat_ngram_size=self.params['no_repeat_ngram_size'],
+                    repetition_penalty=self.params['repetition_penalty'],
+                    temperature=self.params['temperature'],
+                    top_k=self.params['top_k'],
+                    top_p=self.params['top_p'],
+                    max_length=self.params['max_length'],
+                    early_stopping=True
             )
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
         
@@ -211,6 +234,9 @@ class LitModel(pl.LightningModule):
           f2.write(f'BATCH ACCURACY {accuracy} \n')
           f2.write(f'------------------------- \n')
         
+        with open(self.rs, 'a') as f0:
+          f0.write(f'LOSS {loss} \t ACC {accuracy} \n')
+
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -411,6 +437,11 @@ def parse_args():
     parser.add_argument(
         "--num_workers", type=int, default=12, help="Workers used in the dataloader." 
     )
+
+    parser.add_argument(
+        "--iteration", type=int, default=0, help="Iteration number (for Random Search)." 
+    )
+
     parser.add_argument(
         "--grid_size", type=int, default=32, help="The size of the grid for the location encoding."
     )
@@ -537,6 +568,7 @@ def main():
         trainer.test(model=model, dataloaders=datamodule.test_dataloader(), verbose=False)
         print('Testing finished!')
     
+    return 0
 
 if __name__ == "__main__":
     main()
