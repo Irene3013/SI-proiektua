@@ -20,6 +20,7 @@ args = [
 
 iterkop = 5
 
+wd = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
 for i in range(iterkop):
     try:
         iter_index = args.index("--iteration") + 1
@@ -27,5 +28,12 @@ for i in range(iterkop):
 
     except ValueError:
         args += ["--iteration", str(i)]
+
+    try:
+        iter_index = args.index("--opt_wd") + 1
+        args[iter_index] = str(wd[i])
+
+    except ValueError:
+        args += ["--opt_wd", str(i)]
 
     subprocess.run(["python", script_path] + args, check=True)

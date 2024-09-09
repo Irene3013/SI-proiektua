@@ -88,8 +88,10 @@ class LitModel(pl.LightningModule):
         # self.deepspeed = args.deepspeed
         self.pretrained_on = None
         self.prev_num_labels = 0
+        
+        """"
+        #RandomSearch: Model.generate
 
-        #RandomSearch
         self.iteration = args.iteration
         self.search_space = {
             'num_beams': [5, 7, 10],
@@ -102,6 +104,16 @@ class LitModel(pl.LightningModule):
         }
 
         self.params = {key: random.choice(values) for key, values in self.search_space.items()}
+        """
+        self.params = {
+            'num_beams': 5,
+            'no_repeat_ngram_size': 1,
+            'repetition_penalty': 1.5,
+            'temperature': 1.0,
+            'top_k': 50,
+            'top_p': 0.7,
+            'max_length': 20
+        }
 
         # output
         self.predictions = f"./output/Predictions/predictions_{self.iteration}.txt"
@@ -128,6 +140,8 @@ class LitModel(pl.LightningModule):
           f0.write(f'-> top_k:  {self.params["top_k"]} \n')
           f0.write(f'-> top_p:  {self.params["top_p"]} \n')
           f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
+
+          f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
         
     def configure_optimizers(self):
         # Define optimizer and scheduler
