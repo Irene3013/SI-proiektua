@@ -91,8 +91,6 @@ class LitModel(pl.LightningModule):
         
         """"
         #RandomSearch: Model.generate
-
-        self.iteration = args.iteration
         self.search_space = {
             'num_beams': [5, 7, 10],
             'no_repeat_ngram_size': [1],
@@ -105,6 +103,7 @@ class LitModel(pl.LightningModule):
 
         self.params = {key: random.choice(values) for key, values in self.search_space.items()}
         """
+        self.iteration = args.iteration
         self.params = {
             'num_beams': 5,
             'no_repeat_ngram_size': 1,
