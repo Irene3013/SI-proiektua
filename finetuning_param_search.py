@@ -21,7 +21,7 @@ args = [
 iterkop = 5
 
 #wd = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
-for i in range(iterkop):
+for i in range(3, iterkop):
     try:
         iter_index = args.index("--iteration") + 1
         args[iter_index] = str(i)
