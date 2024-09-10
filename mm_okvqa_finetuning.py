@@ -104,6 +104,16 @@ class LitModel(pl.LightningModule):
         self.params = {key: random.choice(values) for key, values in self.search_space.items()}
         """
         self.iteration = args.iteration
+
+        self.search_space = [
+            {'num_beams': 10, 'no_repeat_ngram_size': 1, 'repetition_penalty': 2.0, 'temperature': 0.7, 'top_k': 50,  'top_p': 0.70, 'max_length': 20},
+            {'num_beams': 7,  'no_repeat_ngram_size': 1, 'repetition_penalty': 1.2, 'temperature': 0.7, 'top_k': 10,  'top_p': 0.80, 'max_length': 100},
+            {'num_beams': 3,  'no_repeat_ngram_size': 3, 'repetition_penalty': 1.0, 'temperature': 0.7, 'top_k': 100, 'top_p': 0.70, 'max_length': 20},
+            {'num_beams': 10, 'no_repeat_ngram_size': 1, 'repetition_penalty': 1.2, 'temperature': 1.2, 'top_k': 100, 'top_p': 0.80, 'max_length': 100},
+            {'num_beams': 5,  'no_repeat_ngram_size': 1, 'repetition_penalty': 2.0, 'temperature': 1.5, 'top_k': 20,  'top_p': 0.95, 'max_length': 100}
+        ]
+
+        """
         self.params = {
             'num_beams': 5,
             'no_repeat_ngram_size': 1,
@@ -113,6 +123,8 @@ class LitModel(pl.LightningModule):
             'top_p': 0.7,
             'max_length': 20
         }
+        """
+        self.params = self.search_space[self.iteration]
 
         # output
         self.predictions = f"./output/Predictions/predictions_{self.iteration}.txt"
@@ -140,7 +152,7 @@ class LitModel(pl.LightningModule):
           f0.write(f'-> top_p:  {self.params["top_p"]} \n')
           f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
 
-          f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
+          #f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
         
     def configure_optimizers(self):
         # Define optimizer and scheduler
