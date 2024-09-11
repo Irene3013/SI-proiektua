@@ -137,9 +137,9 @@ class LitModel(pl.LightningModule):
         os.makedirs(os.path.dirname(self.rs), exist_ok=True)
 
         # delete file content or create new file
-        with open(self.predictions, 'w') as f: pass
-        with open(self.info, 'w') as f: pass
-        with open(self.rs, 'w') as f: pass
+        # with open(self.predictions, 'w') as f: pass
+        # with open(self.info, 'w') as f: pass
+        # with open(self.rs, 'w') as f: pass
 
         with open(self.rs, 'a') as f0:
           f0.write(f'ITERATION {self.iteration} \n')

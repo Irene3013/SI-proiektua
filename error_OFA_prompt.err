@@ -1,3 +1,6 @@
+/usr/share/lmod/lmod/init/bash: line 124: 0: No space left on device
+/gscratch/users/asalaberria009/env/p39-cu115/bin/activate: line 21: 0: No space left on device
+/gscratch/users/asalaberria009/env/p39-cu115/bin/activate: line 65: 0: No space left on device
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
 /gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:351: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
@@ -8,8 +11,7 @@ GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
 HPU available: False, using: 0 HPUs
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning exists and is not empty.
-  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+Missing logger folder: logs/ofa_base_okvqa
 LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
 
   | Name  | Type             | Params
@@ -24,39 +26,9 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
 SLURM auto-requeueing enabled. Setting signal handlers.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
 `Trainer.fit` stopped: `max_steps=2000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.02-v3.ckpt
+Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.03.ckpt
 LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.02-v3.ckpt
-SLURM auto-requeueing enabled. Setting signal handlers.
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
-  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:351: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
-  transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
-  warnings.warn(
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning exists and is not empty.
-  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-
-  | Name  | Type             | Params
--------------------------------------------
-0 | model | OFAModel         | 182 M 
-1 | loss  | CrossEntropyLoss | 0     
--------------------------------------------
-182 M     Trainable params
-0         Non-trainable params
-182 M     Total params
-728.954   Total estimated model params size (MB)
-SLURM auto-requeueing enabled. Setting signal handlers.
-Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
-`Trainer.fit` stopped: `max_steps=2000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.02-v4.ckpt
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.02-v4.ckpt
+Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.03.ckpt
 SLURM auto-requeueing enabled. Setting signal handlers.
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
@@ -84,72 +56,7 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
 SLURM auto-requeueing enabled. Setting signal handlers.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
 `Trainer.fit` stopped: `max_steps=2000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.03-v8.ckpt
+Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.03-v1.ckpt
 LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.03-v8.ckpt
+Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.03-v1.ckpt
 SLURM auto-requeueing enabled. Setting signal handlers.
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
-  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:351: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
-  transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
-  warnings.warn(
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning exists and is not empty.
-  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-
-  | Name  | Type             | Params
--------------------------------------------
-0 | model | OFAModel         | 182 M 
-1 | loss  | CrossEntropyLoss | 0     
--------------------------------------------
-182 M     Trainable params
-0         Non-trainable params
-182 M     Total params
-728.954   Total estimated model params size (MB)
-SLURM auto-requeueing enabled. Setting signal handlers.
-Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
-Traceback (most recent call last):
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 609, in <module>
-    main()
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 592, in main
-    trainer.fit(model, datamodule)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 520, in fit
-    call._call_and_handle_interrupt(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 44, in _call_and_handle_interrupt
-    return trainer_fn(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 559, in _fit_impl
-    self._run(model, ckpt_path=ckpt_path)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 935, in _run
-    results = self._run_stage()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 978, in _run_stage
-    self.fit_loop.run()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 201, in run
-    self.advance()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 354, in advance
-    self.epoch_loop.run(self._data_fetcher)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 133, in run
-    self.advance(data_fetcher)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 218, in advance
-    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 178, in run
-    closure()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 140, in __call__
-    self._result = self.closure(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 126, in closure
-    step_output = self._step_fn()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 308, in _training_step
-    training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 288, in _call_strategy_hook
-    output = fn(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 366, in training_step
-    return self.model.training_step(*args, **kwargs)
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 278, in training_step
-    return self.step(batch, split="train")
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 237, in step
-    f1.write(f'------------------------- \n')
-OSError: [Errno
