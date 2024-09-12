@@ -13,6 +13,6 @@ source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
 #export WANDB_API_KEY="b2646e340b097ee10e4ebc4c9a90568f231d5a1f"
 
 srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
-   --lr 2e-5 --opt_wd 1e-5 --batch_size 4 --max_steps 5000 --accumulate_grad_batches 2 \
+   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
    --run_name ofa_base_okvqa --train --evaluate --source vinvl \
    --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
