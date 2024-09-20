@@ -105,15 +105,6 @@ class LitModel(pl.LightningModule):
         """
         self.iteration = args.iteration
 
-        self.search_space = [
-            {'num_beams': 10, 'no_repeat_ngram_size': 1, 'repetition_penalty': 2.0, 'temperature': 0.7, 'top_k': 50,  'top_p': 0.70, 'max_length': 20},
-            {'num_beams': 7,  'no_repeat_ngram_size': 1, 'repetition_penalty': 1.2, 'temperature': 0.7, 'top_k': 10,  'top_p': 0.80, 'max_length': 100},
-            {'num_beams': 3,  'no_repeat_ngram_size': 3, 'repetition_penalty': 1.0, 'temperature': 0.7, 'top_k': 100, 'top_p': 0.70, 'max_length': 20},
-            {'num_beams': 10, 'no_repeat_ngram_size': 1, 'repetition_penalty': 1.2, 'temperature': 1.2, 'top_k': 100, 'top_p': 0.80, 'max_length': 100},
-            {'num_beams': 5,  'no_repeat_ngram_size': 1, 'repetition_penalty': 2.0, 'temperature': 1.5, 'top_k': 20,  'top_p': 0.95, 'max_length': 100}
-        ]
-
-        """
         self.params = {
             'num_beams': 5,
             'no_repeat_ngram_size': 1,
@@ -123,8 +114,6 @@ class LitModel(pl.LightningModule):
             'top_p': 0.7,
             'max_length': 20
         }
-        """
-        self.params = self.search_space[self.iteration]
 
         # output
         self.predictions = f"./output/Predictions/predictions_{self.iteration}.txt"
@@ -137,10 +126,11 @@ class LitModel(pl.LightningModule):
         os.makedirs(os.path.dirname(self.rs), exist_ok=True)
 
         # delete file content or create new file
-        # with open(self.predictions, 'w') as f: pass
-        # with open(self.info, 'w') as f: pass
-        # with open(self.rs, 'w') as f: pass
+        with open(self.predictions, 'w') as f: pass
+        with open(self.info, 'w') as f: pass
+        with open(self.rs, 'w') as f: pass
 
+        # Write parameters info
         with open(self.rs, 'a') as f0:
           f0.write(f'ITERATION {self.iteration} \n')
           f0.write(f'\nPARAMS:\n')
@@ -151,8 +141,7 @@ class LitModel(pl.LightningModule):
           f0.write(f'-> top_k:  {self.params["top_k"]} \n')
           f0.write(f'-> top_p:  {self.params["top_p"]} \n')
           f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
-
-          #f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
+          f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
         
     def configure_optimizers(self):
         # Define optimizer and scheduler
@@ -200,39 +189,41 @@ class LitModel(pl.LightningModule):
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
             label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids.to(self.device)
 
-            # Register info
+            # Register loss info into file
             with open(self.info, 'a') as f1:
-
+              
+              # Get shapes
               batch_size, seq_len, _ = outputs["logits"].shape
               _, label_seq_len = label_ids[:, 1:].shape
 
-              for example_idx in range(batch_size):  # images.size(0) es el tamaño del lote
+              for example_idx in range(batch_size):  
 
-                  # Iterar a través de todas las posiciones de la secuencia
-                  for sequence_idx in range(seq_len):  # input_ids.size(1) es la longitud de la secuencia
-                      if sequence_idx >= label_seq_len:  # Verificar que no estamos fuera del rango de `label_ids`
+                  # Iterate troght all positions
+                  for sequence_idx in range(seq_len):  
+                      if sequence_idx >= label_seq_len:
                           continue
                       
-                      # Obtener los logits y etiquetas antes del reshape
+                      # Get logits before reshape
                       logits_example = outputs["logits"][example_idx, sequence_idx]
                       label_example = label_ids[example_idx, sequence_idx+1]
 
-                      max_len = 10 + len("Pred: ") + 2
-
-                      # Decodificar para verificar
+                      # Get predicted and true words
                       pred_token = torch.argmax(logits_example).item()
                       pred_word = self.tokenizer.decode([pred_token])
                       true_word = self.tokenizer.decode([label_example.item()])
 
+                      # Write info
+                      max_len = 10 + len("Pred: ") + 2 #for ljust
                       pred_str = f"Pred: {pred_word}".ljust(max_len + 2)
                       true_str = f"True: {true_word}"
-
-                      # Escribir en el archivo
                       f1.write(f"{pred_str}{true_str}\n")
+
                   f1.write(f"\n")
-
+              
+              # Compute loss
               loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids[:, 1:].reshape(-1))
-
+              
+              # Write loss
               f1.write(f"LOSS: {loss} \n")
               f1.write(f'------------------------- \n')
 
@@ -255,20 +246,21 @@ class LitModel(pl.LightningModule):
 
             raise NotImplementedError
 
-        # Save Loss
+        # Save loss
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
         
         # Compute Accuracy
         accuracy, register = compute_accuracy_score(list(zip(*all_targets)), pred_text)
         self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
 
-        # Register predictons
+        # Register predictons and accuracy
         with open(self.predictions, 'a') as f2:
           for reg in register:
             f2.write(f'\n True labels: {reg[0]} \n Prediction: {reg[1]} \n Accuracy: {reg[2]} \n')
           f2.write(f'BATCH ACCURACY {accuracy} \n')
           f2.write(f'------------------------- \n')
         
+        # Register batch loss and accuracy
         with open(self.rs, 'a') as f0:
           f0.write(f'LOSS {loss} \t ACC {accuracy} \n')
 
@@ -523,7 +515,6 @@ def main():
     # Load data
     print("Loading dataset...")
 
-    #TODO change default to okvqa!
     if args.dataset == 'spatialcoco': #DEFAULT: spatialcoco
         datamodule = OKVQADataModule(args)
 
@@ -551,7 +542,6 @@ def main():
     print(f'gpus: {args.gpus}')
     
     logger = TensorBoardLogger("logs", name=tb_run_name, default_hp_metric=False)
-    #logger = WandbLogger(project=tb_run_name)
     
     # Use ModelCheckPoint to store best validation model
     checkpoint_callback = ModelCheckpoint(
