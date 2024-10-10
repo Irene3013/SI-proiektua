@@ -7,7 +7,6 @@ from PIL import Image
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 # from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 # from deepspeed.ops.adam import DeepSpeedCPUAdam
@@ -123,14 +122,15 @@ class LitModel(pl.LightningModule):
         # create directory if needed
         os.makedirs(os.path.dirname(self.predictions), exist_ok=True)
         os.makedirs(os.path.dirname(self.info), exist_ok=True)
-        os.makedirs(os.path.dirname(self.rs), exist_ok=True)
+        #os.makedirs(os.path.dirname(self.rs), exist_ok=True)
 
         # delete file content or create new file
         with open(self.predictions, 'w') as f: pass
         with open(self.info, 'w') as f: pass
-        with open(self.rs, 'w') as f: pass
+        #with open(self.rs, 'w') as f: pass
 
         # Write parameters info
+        """
         with open(self.rs, 'a') as f0:
           f0.write(f'ITERATION {self.iteration} \n')
           f0.write(f'\nPARAMS:\n')
@@ -142,7 +142,7 @@ class LitModel(pl.LightningModule):
           f0.write(f'-> top_p:  {self.params["top_p"]} \n')
           f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
           f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
-        
+        """
     def configure_optimizers(self):
         # Define optimizer and scheduler
         """
@@ -183,7 +183,7 @@ class LitModel(pl.LightningModule):
             input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
             
             # Get decoder_input_ids
-            decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, 1:].to(self.device)
+            decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
             
             # Compute loss
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
@@ -228,6 +228,7 @@ class LitModel(pl.LightningModule):
               f1.write(f'------------------------- \n')
 
             # Generate output (to compute accuracy)
+            """
             gen_outputs = self.model.generate(
                     input_ids=input_ids,
                     patch_images=patch_images,
@@ -240,6 +241,8 @@ class LitModel(pl.LightningModule):
                     max_length=self.params['max_length'],
                     early_stopping=True
             )
+            """
+            gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
         
         else:
@@ -261,9 +264,10 @@ class LitModel(pl.LightningModule):
           f2.write(f'------------------------- \n')
         
         # Register batch loss and accuracy
+        """
         with open(self.rs, 'a') as f0:
           f0.write(f'LOSS {loss} \t ACC {accuracy} \n')
-
+        """
         return loss
 
     def training_step(self, batch, batch_idx):
