@@ -303,7 +303,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         # Process annotations
         annotation = self.annotations["annotations"][index]
         question = annotation["question"]
-        answers = [str(ans["raw_answer"]) for ans in annotation["answers"]]
+        answers = [str(ans["answer"]) for ans in annotation["answers"]]
 
         # Process image
         image_id = annotation["image_id"]
