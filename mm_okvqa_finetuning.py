@@ -4,6 +4,7 @@ import json
 import random
 import os
 from PIL import Image
+from collections import Counter
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -40,14 +41,21 @@ def preprocess_prediction(pred):
 
 def compute_accuracy_score(y_true, y_pred):
     total_acc = 0
-    register = []
     for true_targets, pred in zip(y_true, y_pred):
         acc = okvqa_accuracy_score(true_targets, preprocess_prediction(pred))
-        register.append([true_targets, pred, acc])
         total_acc += acc
-    return total_acc / len(y_pred), register
+    return total_acc / len(y_pred)
 
-  
+def choose_answer(answers):
+    counts = Counter(answers)
+    repeats_3 = [answer for answer, count in counts.items() if count >= 3]
+    if repeats_3: 
+        return random.choice(repeats_3)
+    repeats_2 = [answer for answer, count in counts.items() if count >= 2]
+    if repeats_2: 
+        return random.choice(repeats_2)
+    return random.choice(answers)
+
 ## Load model
 class LitModel(pl.LightningModule):
 
@@ -87,62 +95,8 @@ class LitModel(pl.LightningModule):
         # self.deepspeed = args.deepspeed
         self.pretrained_on = None
         self.prev_num_labels = 0
+
         
-        """"
-        #RandomSearch: Model.generate
-        self.search_space = {
-            'num_beams': [5, 7, 10],
-            'no_repeat_ngram_size': [1],
-            'repetition_penalty': [1.5, 2.0],
-            'temperature': [0.7, 0.8, 1.0],
-            'top_k': [10, 20, 50],
-            'top_p': [0.7, 0.8],
-            'max_length': [20, 50]
-        }
-
-        self.params = {key: random.choice(values) for key, values in self.search_space.items()}
-        """
-        self.iteration = args.iteration
-
-        self.params = {
-            'num_beams': 5,
-            'no_repeat_ngram_size': 1,
-            'repetition_penalty': 1.5,
-            'temperature': 1.0,
-            'top_k': 50,
-            'top_p': 0.7,
-            'max_length': 20
-        }
-
-        # output
-        self.predictions = f"./output/Predictions/predictions_{self.iteration}.txt"
-        self.info = f"./output/Info/info.txt_{self.iteration}.txt"
-        self.rs = f"./output/RandomSearch/RandomSearch_{self.iteration}.txt"
-
-        # create directory if needed
-        os.makedirs(os.path.dirname(self.predictions), exist_ok=True)
-        os.makedirs(os.path.dirname(self.info), exist_ok=True)
-        #os.makedirs(os.path.dirname(self.rs), exist_ok=True)
-
-        # delete file content or create new file
-        with open(self.predictions, 'w') as f: pass
-        with open(self.info, 'w') as f: pass
-        #with open(self.rs, 'w') as f: pass
-
-        # Write parameters info
-        """
-        with open(self.rs, 'a') as f0:
-          f0.write(f'ITERATION {self.iteration} \n')
-          f0.write(f'\nPARAMS:\n')
-          f0.write(f'-> num_beams:  {self.params["num_beams"]} \n')
-          f0.write(f'-> no_repeat_ngram_size:  {self.params["no_repeat_ngram_size"]} \n')
-          f0.write(f'-> repetition_penalty:  {self.params["repetition_penalty"]} \n')
-          f0.write(f'-> temperature:  {self.params["temperature"]} \n')
-          f0.write(f'-> top_k:  {self.params["top_k"]} \n')
-          f0.write(f'-> top_p:  {self.params["top_p"]} \n')
-          f0.write(f'-> max_length:  {self.params["max_length"]} \n \n')
-          f0.write(f'\nWEIGHT DECAY: {self.opt_wd}\n')
-        """
     def configure_optimizers(self):
         # Define optimizer and scheduler
         """
@@ -185,63 +139,14 @@ class LitModel(pl.LightningModule):
             # Get decoder_input_ids
             decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
             
-            # Compute loss
+            # Get outputs 
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
-            label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids.to(self.device)
 
-            # Register loss info into file
-            with open(self.info, 'a') as f1:
+            # Compute loss
+            label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, 1:].to(self.device)
+            loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
               
-              # Get shapes
-              batch_size, seq_len, _ = outputs["logits"].shape
-              _, label_seq_len = label_ids[:, 1:].shape
-
-              for example_idx in range(batch_size):  
-
-                  # Iterate troght all positions
-                  for sequence_idx in range(seq_len):  
-                      if sequence_idx >= label_seq_len:
-                          continue
-                      
-                      # Get logits before reshape
-                      logits_example = outputs["logits"][example_idx, sequence_idx]
-                      label_example = label_ids[example_idx, sequence_idx+1]
-
-                      # Get predicted and true words
-                      pred_token = torch.argmax(logits_example).item()
-                      pred_word = self.tokenizer.decode([pred_token])
-                      true_word = self.tokenizer.decode([label_example.item()])
-
-                      # Write info
-                      max_len = 10 + len("Pred: ") + 2 #for ljust
-                      pred_str = f"Pred: {pred_word}".ljust(max_len + 2)
-                      true_str = f"True: {true_word}"
-                      f1.write(f"{pred_str}{true_str}\n")
-
-                  f1.write(f"\n")
-              
-              # Compute loss
-              loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids[:, 1:].reshape(-1))
-              
-              # Write loss
-              f1.write(f"LOSS: {loss} \n")
-              f1.write(f'------------------------- \n')
-
             # Generate output (to compute accuracy)
-            """
-            gen_outputs = self.model.generate(
-                    input_ids=input_ids,
-                    patch_images=patch_images,
-                    num_beams=self.params['num_beams'],
-                    no_repeat_ngram_size=self.params['no_repeat_ngram_size'],
-                    repetition_penalty=self.params['repetition_penalty'],
-                    temperature=self.params['temperature'],
-                    top_k=self.params['top_k'],
-                    top_p=self.params['top_p'],
-                    max_length=self.params['max_length'],
-                    early_stopping=True
-            )
-            """
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
         
@@ -253,21 +158,9 @@ class LitModel(pl.LightningModule):
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
         
         # Compute Accuracy
-        accuracy, register = compute_accuracy_score(list(zip(*all_targets)), pred_text)
+        accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
         self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
-
-        # Register predictons and accuracy
-        with open(self.predictions, 'a') as f2:
-          for reg in register:
-            f2.write(f'\n True labels: {reg[0]} \n Prediction: {reg[1]} \n Accuracy: {reg[2]} \n')
-          f2.write(f'BATCH ACCURACY {accuracy} \n')
-          f2.write(f'------------------------- \n')
         
-        # Register batch loss and accuracy
-        """
-        with open(self.rs, 'a') as f0:
-          f0.write(f'LOSS {loss} \t ACC {accuracy} \n')
-        """
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -287,17 +180,14 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
         assert os.path.exists(root), f"Root directory '{root}' does not exist."
         assert split in ['train', 'val', 'test'], f"Unsupported split: {split}"
+        assert transform is not None, "Invalid 'None' transform value, a transorm must be provided."
 
         self.root = root
         self.split = split
+        self.transform = transform
 
         with open(os.path.join(root, self.split, f'annotations_{self.split}.json'), "r") as f:
             self.annotations = json.load(f)
-
-        if transform is not None:
-            self.transform = transform
-        else:
-            self.transform = transforms.ToTensor()
 
   def __getitem__(self, index):
         # Process annotations
@@ -311,7 +201,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         img_path = os.path.join(self.root, self.split, self.split, image_name)
         image = Image.open(img_path).convert("RGB")
         image = self.transform(image)
-        return image, question, list(answers) , random.choice(list(answers))
+        return image, question, list(answers), choose_answer(list(answers))
 
   def __len__(self):
         return len(self.annotations["annotations"])
@@ -402,7 +292,6 @@ def parse_args():
     parser.add_argument(
         "--scheduler_off", action="store_true", help="Do not use any scheduler"
     )
-
     parser.add_argument(
         "--deepspeed", action="store_true", help="Use deepspeed stage-2 offload strategy."
     )
@@ -470,10 +359,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--iteration", type=int, default=0, help="Iteration number (for Random Search)." 
-    )
-
-    parser.add_argument(
         "--grid_size", type=int, default=32, help="The size of the grid for the location encoding."
     )
 
@@ -491,8 +376,7 @@ def parse_args():
         "--run_name", type=str, default=None, help="Name of the run. Used in tensorboard and output filenames. If it is not filled or already exists, a custom one will be generated."
     )
     parser.add_argument(
-        #"--output_path", type=str, default="/ikerlariak/asalaberria009/trained_models/mm_vsr_models/", help="Output directory for plots and models."
-        "--output_path", type=str, default="/gaueko0/users/ietxarri010/ofa_okvqa_finetuning/"
+        "--output_path", type=str, default="/gaueko0/users/ietxarri010/ofa_okvqa_finetuning/", help="Output directory for plots and models."
     )
 
     args = parser.parse_args()
