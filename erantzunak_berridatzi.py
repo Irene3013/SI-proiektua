@@ -72,9 +72,9 @@ def main():
                 prompt = f"Question: {question}\nAnswer: {answer}\nPlease rewrite the answer using synonyms or rephrasing."
                 result = pipeline(prompt, max_length=50, truncation=True, num_return_sequences=1) 
                 #print(result[0]['generated_text'], "\n")
-
+                text = result[0]['generated_text']
                 with open(train_values, 'a') as f:
-                    f.write(f' {answer} --> {result[0]['generated_text']}')
+                    f.write(f' {answer} --> {text}')
 
 if __name__ == "__main__":
     main()
