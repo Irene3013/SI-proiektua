@@ -61,20 +61,20 @@ def main():
     elif args.model_type == "openchat":
         pipeline = transformers.pipeline("text-generation", model="openchat/openchat-3.5-0106", torch_dtype=torch.bfloat16, device_map="auto")
 
-        for ann in train:
-            question = ann['question']
-            answers = ann['answer']
+        for idx, ann in enumerate(train["annotations"]):
+            question = ann["question"]
+            answers = [str(ans["answer"]) for ans in ann["answers"]]
 
             with open(train_values, 'a') as f:
-                 f.write(f'{question}')
+                 f.write(f'\nQ{idx}: {question}\n')
             
             for answer in answers:
                 prompt = f"Question: {question}\nAnswer: {answer}\nPlease rewrite the answer using synonyms or rephrasing."
                 result = pipeline(prompt, max_length=50, truncation=True, num_return_sequences=1) 
-                #print(result[0]['generated_text'], "\n")
                 text = result[0]['generated_text']
                 with open(train_values, 'a') as f:
-                    f.write(f' {answer} --> {text}')
+                    f.write(f'Original answer: {answer}\n')
+                    f.write(f'New answer: {text}\n\n')
 
 if __name__ == "__main__":
     main()
