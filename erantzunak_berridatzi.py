@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import copy
-from progressbar import ProgressBar
+#from progressbar import ProgressBar
 
 def get_llama_batch_prompts(annotations):
     batch_prompts = []
@@ -33,7 +33,7 @@ def result_processing(result, answer):
 def compute_results(pipeline, batch_prompts):
     results = []
     batch_size = 16
-    bar = ProgressBar(max_value= 1 + len(batch_prompts))
+    #bar = ProgressBar(max_value= 1 + len(batch_prompts))
     for i in range(0, len(batch_prompts), batch_size):
         batch = batch_prompts[i:i+batch_size]
         outputs = pipeline(batch, max_new_tokens=10, truncation=True)
@@ -42,8 +42,8 @@ def compute_results(pipeline, batch_prompts):
                 answer = text.split("Answer: ")[1].split("\n")[0]  
                 result = output[0]['generated_text'][-1]['content']
                 results.append(result_processing(result, answer))
-        bar.update(i)
-    bar.finish()
+        #bar.update(i)
+    #bar.finish()
     return results
 
 
