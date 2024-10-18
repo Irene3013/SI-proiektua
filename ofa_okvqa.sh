@@ -9,6 +9,7 @@
 
 source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
 
+
 #export TRANSFORMERS_CACHE="/gaueko0/transformers_cache/"
 
 srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \

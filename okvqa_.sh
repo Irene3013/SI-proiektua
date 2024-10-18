@@ -10,4 +10,5 @@
 source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
 
 #export TRANSFORMERS_CACHE="/gaueko0/transformers_cache/"
+srun huggingface-cli login --token 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 --add-to-git-credential
 srun python erantzunak_berridatzi.py --model_type "llama-8b" --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
