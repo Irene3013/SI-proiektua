@@ -13,5 +13,5 @@ source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
 #source /var/python3envs/transformers−4.12.3/bin/activate
 
 #export TRANSFORMERS_CACHE="/gaueko0/transformers_cache/"
-srun huggingface-cli login --token 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 --add-to-git-credential
-srun python erantzunak_berridatzi.py --model_type "llama-8b" --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
+#srun huggingface-cli login --token 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 --add-to-git-credential
+srun python erantzunak_berridatzi.py --model_type "llama-8b" --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa --token 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

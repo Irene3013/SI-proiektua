@@ -4,8 +4,9 @@ import argparse
 import json
 import os
 import copy
-#from progressbar import ProgressBar
+import subprocess
 
+#from progressbar import ProgressBar
 def get_llama_batch_prompts(annotations):
     batch_prompts = []
     for idx, ann in enumerate(annotations):
@@ -65,6 +66,9 @@ def parse_args():
     parser.add_argument(
         "--root", type=str, default="/gaueko0/users/ietxarri010/GrAL_Irene/okvqa", help="Path to the OkVqa prediction files."
     )
+    parser.add_argument(
+        "--token", type=str, required=True, help="HuggingFace login token"
+    )
     args = parser.parse_args()
     return args
 
@@ -72,6 +76,14 @@ def parse_args():
 def main():
     print("Parsing args...")
     args = parse_args()
+
+    # Huggingface login
+    command = ['huggingface-cli', 'login', '--token', args.token, '--add-to-git-credential']
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        print('Output:', result.stdout)
+    except subprocess.CalledProcessError as e:
+        print('Error:', e.stderr)
 
     # Load jsons
     with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
