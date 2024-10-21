@@ -5,6 +5,7 @@ import json
 import os
 import copy
 import subprocess
+from huggingface_hub import login
 
 #from progressbar import ProgressBar
 def get_llama_batch_prompts(annotations):
@@ -78,12 +79,15 @@ def main():
     args = parse_args()
 
     # Huggingface login
+    """
     command = ['huggingface-cli', 'login', '--token', args.token, '--add-to-git-credential']
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         print('Output:', result.stdout)
     except subprocess.CalledProcessError as e:
         print('Error:', e.stderr)
+    """
+    login(args.token)
 
     # Load jsons
     with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
