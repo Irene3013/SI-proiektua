@@ -4,6 +4,8 @@ import argparse
 import json
 import os
 import copy
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import bitsandbytes as bnb
 from huggingface_hub import login
 #from progressbar import ProgressBar
 
@@ -45,21 +47,29 @@ def result_processing(result, answer, word_limit=8):
     return result
 
 
-def compute_results(pipeline, batch_prompts, batch_size=16):
-    results = []
+def get_result(generated_text, is_llama=False):
+  if is_llama:
+    user_text = generated_text[1]['content']
+    return generated_text[-1]['content'], user_text.split("Answer: ")[1].split("\n")[0]
+  else:
+    print(generated_text)
+    return "", ""
+    #return generated_text.split("Answer: ")[-1].split("\n")[0], generated_text.split("Answer: ")[1].split("\n")[0]
 
+def compute_results(pipeline, batch_prompts, model_type, batch_size=16):
+    results = []
+    is_llama = "llama" in model_type
     for i in range(0, len(batch_prompts), batch_size):
         batch = batch_prompts[i:i+batch_size]
         outputs = pipeline(batch, max_new_tokens=10, truncation=True)
 
         for output in outputs:
-            generated_texts = output[0]['generated_text']
-            user_text = generated_texts[1]['content'] 
-            answer = user_text.split("Answer: ")[1].split("\n")[0]
-            result = generated_texts[-1]['content']  
-            
+            generated_text = output[0]['generated_text']
+            result, answer = get_result(generated_text, is_llama)
             processed_result = result_processing(result, answer)
             results.append(processed_result)
+            
+            print(output)
 
     return results
 
@@ -105,10 +115,10 @@ def main():
     # Load jsons
     with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
       train = json.load(f)
-      #train["annotations"] = train["annotations"][:5]
+      train["annotations"] = train["annotations"][:5]
     with open(os.path.join(args.root, 'val', f'annotations_val.json'), "r") as f: 
       val = json.load(f)
-      #val["annotations"] = val["annotations"][:5]
+      val["annotations"] = val["annotations"][:5]
 
     # Get prompts
     train_batch_prompts = get_batch_prompts(train["annotations"], args.model_type)
@@ -120,7 +130,10 @@ def main():
         login(args.token) 
 
         if args.model_type == "llama-8b":
-            model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+            model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+            tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+            """
             pipeline = transformers.pipeline(
                 "text-generation",
                 model=model_id,
@@ -128,6 +141,29 @@ def main():
                 device_map="auto",
                 pad_token_id=50256, #eos
             )
+
+            """
+            
+        elif args.model_type == "llama-70b":
+            model_id="meta-llama/Llama-3.1-70B-Instruct"
+            tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+            # Load cuantized model
+            model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                load_in_8bit=True,  # Cuantización en 8 bits
+                device_map="auto",  # Asigna automáticamente los dispositivos
+                torch_dtype=torch.bfloat16,  
+            )
+
+        pipeline = transformers.pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            torch_dtype=torch.bfloat16, 
+            device_map="auto",
+            pad_token_id=50256,
+        )
 
     else: #openchat
         pipeline = transformers.pipeline(
@@ -150,7 +186,9 @@ def main():
     
 
     # Train 
+    
     train_results = compute_results(pipeline, train_batch_prompts)
+    """
     train_ = replace_info(train, train_results)
     train_path = os.path.join(args.root, 'train', 'annotations_train_.json')
     os.makedirs(os.path.dirname(train_path), exist_ok=True)
@@ -166,7 +204,7 @@ def main():
     with open(val_path, 'w') as json_file:
         json.dump(val_, json_file, indent=4)
     print("Val set finnished!\n")
-
+    """
 
 if __name__ == "__main__":
     main()
