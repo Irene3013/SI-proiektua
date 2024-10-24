@@ -4,11 +4,12 @@ import argparse
 import json
 import os
 import copy
+import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import bitsandbytes as bnb
 from huggingface_hub import login
-#from progressbar import ProgressBar
-
+from progressbar import ProgressBar
+import requests
 
 def create_prompt(question, answer, is_llama=False):
     if is_llama:
@@ -41,6 +42,28 @@ def get_batch_prompts(annotations, model_type):
     return batch_prompts
 
 
+def call_ollama_api(prompt, model="llama3.1"):
+    # URL de la API local de Ollama
+    ollama_url = "http://localhost:11434/api/generate"
+    
+    # Cuerpo de la solicitud
+    data = {
+        "model": model,
+        "prompt": prompt,
+        "max_new_tokens": 10,  # Ajusta el número de tokens según tus necesidades
+        "truncation": True
+    }
+    
+    # Hacemos la solicitud a la API
+    response = requests.post(ollama_url, json=data)
+    
+    # Verificamos si la solicitud fue exitosa
+    if response.status_code == 200:
+        # Decodificamos la respuesta
+        return response.json()["response"]
+    else:
+        raise Exception(f"Error en la llamada a la API: {response.status_code}")
+
 def result_processing(result, answer, word_limit=8):
     if len(result.split()) > word_limit:
         return answer
@@ -49,16 +72,18 @@ def result_processing(result, answer, word_limit=8):
 
 def get_result(generated_text, is_llama=False):
   if is_llama:
-    user_text = generated_text[1]['content']
+    user_text = generated_text[1]['content']  
     return generated_text[-1]['content'], user_text.split("Answer: ")[1].split("\n")[0]
   else:
     print(generated_text)
     return "", ""
     #return generated_text.split("Answer: ")[-1].split("\n")[0], generated_text.split("Answer: ")[1].split("\n")[0]
 
-def compute_results(pipeline, batch_prompts, model_type, batch_size=16):
+def compute_results(pipeline, batch_prompts, model_type, batch_size=32):
     results = []
     is_llama = "llama" in model_type
+    bar = ProgressBar(max_value= 1 + len(batch_prompts))
+
     for i in range(0, len(batch_prompts), batch_size):
         batch = batch_prompts[i:i+batch_size]
         outputs = pipeline(batch, max_new_tokens=10, truncation=True)
@@ -68,9 +93,9 @@ def compute_results(pipeline, batch_prompts, model_type, batch_size=16):
             result, answer = get_result(generated_text, is_llama)
             processed_result = result_processing(result, answer)
             results.append(processed_result)
-            
-            print(output)
 
+        bar.update(i)
+    bar.finish()
     return results
 
 
@@ -86,7 +111,7 @@ def replace_info(data, results):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_type", type=str, required=True, choices=["openchat", "llama-8b", "llama-70b"],
+        "--model_type", type=str, required=True, choices=["openchat", "llama3.1:8b", "llama3.1:70b"],
         help="Model type to be fine-tuned."
     )
     parser.add_argument(
@@ -94,6 +119,9 @@ def parse_args():
     )
     parser.add_argument(
         "--token", type=str, default=None, help="HuggingFace login token"
+    )
+    parser.add_argument(
+        "--api", action="store_true", help="Use ollama api."
     )
     args = parser.parse_args()
     return args
@@ -103,19 +131,10 @@ def main():
     print("Parsing args...")
     args = parse_args()
 
-    """
-    command = ['huggingface-cli', 'login', '--token', args.token, '--add-to-git-credential']
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print('Output:', result.stdout)
-    except subprocess.CalledProcessError as e:
-        print('Error:', e.stderr)
-    """
-
     # Load jsons
     with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
       train = json.load(f)
-      train["annotations"] = train["annotations"][:5]
+      train["annotations"] = train["annotations"][:20]
     with open(os.path.join(args.root, 'val', f'annotations_val.json'), "r") as f: 
       val = json.load(f)
       val["annotations"] = val["annotations"][:5]
@@ -124,27 +143,18 @@ def main():
     train_batch_prompts = get_batch_prompts(train["annotations"], args.model_type)
     val_batch_prompts = get_batch_prompts(val["annotations"], args.model_type)
     
+
     # Load pipeline
     if "llama" in args.model_type:
         assert args.token != None, "Unable to login Hugging Face, please provide a HF token." 
         login(args.token) 
 
-        if args.model_type == "llama-8b":
+
+        if args.model_type == "llama3.1:8b":
             model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-            tokenizer = AutoTokenizer.from_pretrained(model_id)
-
-            """
-            pipeline = transformers.pipeline(
-                "text-generation",
-                model=model_id,
-                model_kwargs={"torch_dtype": torch.bfloat16},
-                device_map="auto",
-                pad_token_id=50256, #eos
-            )
-
-            """
-            
-        elif args.model_type == "llama-70b":
+            tokenizer = AutoTokenizer.from_pretrained(model)
+                
+        elif args.model_type == "llama3.1:70b":
             model_id="meta-llama/Llama-3.1-70B-Instruct"
             tokenizer = AutoTokenizer.from_pretrained(model_id)
 
@@ -171,30 +181,19 @@ def main():
             model="openchat/openchat-3.5-0106", 
             torch_dtype=torch.bfloat16, device_map="auto"
         )
-
-        """
-        for idx, ann in enumerate(data["annotations"][:5]):
-            question = ann["question"]
-            answers = [str(ans["answer"]) for ans in ann["answers"]]
-            for answer in answers:
-                #prompt = f"Question: {question}\nAnswer: {answer}\nPlease rewrite the answer using synonyms or rephrasing."
-                #prompt = f"Question: {question}\nAnswer: {answer}\nPlease replace '{answer}' with a synonym or an equivalent term."
-                prompt = f"Please replace '{answer}' with a synonym or an equivalent term."
-                result = pipeline(prompt, max_length=20, truncation=True, num_return_sequences=1) 
-                text = result[0]['generated_text']
-        """
     
 
     # Train 
     
-    train_results = compute_results(pipeline, train_batch_prompts)
-    """
+    train_results = compute_results(pipeline, train_batch_prompts, args.model_type)
     train_ = replace_info(train, train_results)
     train_path = os.path.join(args.root, 'train', 'annotations_train_.json')
     os.makedirs(os.path.dirname(train_path), exist_ok=True)
     with open(train_path, 'w') as json_file:
         json.dump(train_, json_file, indent=4)
-    print("Train set finnished!\n")
+    print(f"Train set finnished!\n")
+
+    """
 
     # Val 
     val_results = compute_results(pipeline, val_batch_prompts)
