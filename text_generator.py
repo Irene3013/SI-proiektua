@@ -62,7 +62,6 @@ class ComputeResults:
         """
         self.model_name = model_name
         self.token = token
-        self.pipeline = None
         self.is_llama = "llama" in model_name
         self.pipeline = self.load_pipeline()  
 
@@ -163,9 +162,6 @@ def parse_args():
     parser.add_argument(
         "--token", type=str, default=None, help="HuggingFace login token"
     )
-    parser.add_argument(
-        "--use_api", action="store_true", help="Use ollama api."
-    )
     args = parser.parse_args()
     return args
 
@@ -189,7 +185,6 @@ def main():
     # Create class instance
     compute = ComputeResults(
         model_name=args.model_name,
-        use_api=args.use_api,  
         token=args.token 
     )
 
