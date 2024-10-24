@@ -52,7 +52,7 @@ def replace_info(data, results):
     return data_
 
 class ComputeResults:
-    def __init__(self, model_name, use_api=False, token=None):
+    def __init__(self, model_name, token=None):
         """
         Initializes the class with the model type and the method you want to use (API or pipeline).
 
@@ -61,13 +61,10 @@ class ComputeResults:
         :param token: Hugging Face token (only required if using the llama model).
         """
         self.model_name = model_name
-        self.use_api = use_api
         self.token = token
         self.pipeline = None
         self.is_llama = "llama" in model_name
-
-        if not use_api:
-            self.pipeline = self.load_pipeline()  
+        self.pipeline = self.load_pipeline()  
 
     def load_pipeline(self):
         """
@@ -111,24 +108,6 @@ class ComputeResults:
                 device_map="auto"
             )
 
-    def call_ollama_api(self, prompt):
-        """
-        Calls the Ollama API for text generation with the specified model.
-        """
-        ollama_url = "http://localhost:11434/api/generate"
-        data = {
-            "model": self.model,
-            "prompt": prompt,
-            "max_new_tokens": 10,
-            "truncation": True
-        }
-
-        response = requests.post(ollama_url, json=data)
-
-        if response.status_code == 200:
-            return response.json()["response"]
-        else:
-            raise Exception(f"Error en la llamada a la API: {response.status_code}")
 
     def generate(self, batch_prompts, batch_size=32):
         """
@@ -140,10 +119,7 @@ class ComputeResults:
         for i in range(0, len(batch_prompts), batch_size):
             batch = batch_prompts[i:i+batch_size]
 
-            if self.use_api:
-                outputs = [self.call_ollama_api(prompt) for prompt in batch]
-            else:
-                outputs = self.pipeline(batch, max_new_tokens=10, truncation=True)
+            outputs = self.pipeline(batch, max_new_tokens=10, truncation=True)
 
             for output in outputs:
                 generated_text = output if self.use_api else output[0]['generated_text']
@@ -159,10 +135,7 @@ class ComputeResults:
         """
         Processes the generated text to get the final result and the original answer.
         """
-        if self.use_api:
-            print(generated_text)
-            return "", ""
-        elif self.is_llama:
+        if self.is_llama:
             user_text = generated_text[1]['content']  
             return generated_text[-1]['content'], user_text.split("Answer: ")[1].split("\n")[0]
         else:
@@ -181,8 +154,8 @@ class ComputeResults:
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_type", type=str, required=True, choices=["openchat", "llama3.1:8b", "llama3.1:70b"],
-        help="Model type to be fine-tuned."
+        "--model_name", type=str, required=True, choices=["openchat", "llama3.1:8b", "llama3.1:70b"],
+        help="Model name to use."
     )
     parser.add_argument(
         "--root", type=str, default="/gaueko0/users/ietxarri010/GrAL_Irene/okvqa", help="Path to the OkVqa prediction files."
@@ -191,7 +164,7 @@ def parse_args():
         "--token", type=str, default=None, help="HuggingFace login token"
     )
     parser.add_argument(
-        "--api", action="store_true", help="Use ollama api."
+        "--use_api", action="store_true", help="Use ollama api."
     )
     args = parser.parse_args()
     return args
@@ -210,12 +183,12 @@ def main():
     #  val["annotations"] = val["annotations"][:5]
 
     # Get prompts
-    train_batch_prompts = get_batch_prompts(train["annotations"], args.model_type)
+    train_batch_prompts = get_batch_prompts(train["annotations"], args.model_name)
     #val_batch_prompts = get_batch_prompts(val["annotations"], args.model_type)
     
     # Create class instance
     compute = ComputeResults(
-        model_type=args.model_type,
+        model_name=args.model_name,
         use_api=args.use_api,  
         token=args.token 
     )
