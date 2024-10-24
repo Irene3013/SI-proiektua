@@ -117,7 +117,7 @@ class ComputeResults:
         for i in range(0, len(batch_prompts), batch_size):
             batch = batch_prompts[i:i+batch_size]
 
-            outputs = self.pipeline(batch, max_new_tokens=10, truncation=True)
+            outputs = self.pipeline(batch, max_new_tokens=8, truncation=True)
 
             for output in outputs:
                 generated_text = output[0]['generated_text']
@@ -144,7 +144,7 @@ class ComputeResults:
         """
         Discards the longest results and replaces them with the orginal answer.
         """
-        if len(result.split()) > word_limit:
+        if len(result.split()) >= word_limit:
             return answer
         return result 
 
@@ -175,19 +175,15 @@ def main():
     print("\nLoading json files...")
     with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
       train = json.load(f)
-      train["annotations"] = train["annotations"]
     with open(os.path.join(args.root, 'val', f'annotations_val.json'), "r") as f: 
       val = json.load(f)
-      val["annotations"] = val["annotations"]
     print(f'Files loaded.')
 
     # Get prompts
     print("\nGetting batch promps...")
-    time0 = time.time()
     train_batch_prompts = get_batch_prompts(train["annotations"], args.model_name)
-    val_batch_prompts = get_batch_prompts(val["annotations"], args.model_type)
-    time1 = time.time()
-    print(f'Batch promps computed. Time: {(time1-time0)//60}min {(time1-time0)%60}s')
+    val_batch_prompts = get_batch_prompts(val["annotations"], args.model_name)
+    print(f'Batch promps computed. \n')
 
     # Create class instance
     compute = ComputeResults(
@@ -197,38 +193,40 @@ def main():
 
     # Compute train results 
     print("\nGenerating train answers...")
+    time1 = time.time()
     train_results = compute.generate(train_batch_prompts)
     time2 = time.time()
-    print(f'Train answers generated. Time: {(time2-time1)//3600}h {((time2-time1)%3600)//60}min {(time2-time1)%60}s')
+    print(train_results)
+    print(f'Train answers generated. Time: {(time2-time1)//3600}h {((time2-time1)%3600)//60}min {int((time2-time1)%60)}s')
 
-    # Compute valdation results 
+    # Compute validation results 
     print("\nGenerating validation answers...")
     val_results = compute.generate(val_batch_prompts)
     time3 = time.time()
-    print(f'Validation answers generated. Time: {(time3-time2)//3600}h {((time3-time2)%3600)//60}min {(time3-time2)%60}s')
+    print(val_results)
+    print(f'Validation answers generated. Time: {(time3-time2)//3600}h {((time3-time2)%3600)//60}min {int((time3-time2)%60)}s')
 
     # Replace annotations with new answers
     print("\nReplacing annotations answers...")
     train_ = replace_info(train, train_results)
     val_ = replace_info(val, val_results)
-    time4 = time.time()
-    print(f"Answers replaced. Time: {(time4-time3)//60}min {(time4-time3)%60}s")
+    print(f"Answers replaced.")
 
-    """
+    print(f"\nSaving answers to json files...")
+
     # Save train annotations to json file
     train_path = os.path.join(args.root, 'train', f'annotations_train_{args.model_name}.json')
     os.makedirs(os.path.dirname(train_path), exist_ok=True)
     with open(train_path, 'w') as json_file:
         json.dump(train_, json_file, indent=4)
-    print(f"Train set finnished!\n")
+    print(f"Train set saved!")
 
     # Save validation annotations to json file
     val_path = os.path.join(args.root, 'val', f'annotations_val_{args.model_name}.json')
     os.makedirs(os.path.dirname(val_path), exist_ok=True)
     with open(val_path, 'w') as json_file:
         json.dump(val_, json_file, indent=4)
-    print("Val set finnished!\n")
-    """
+    print("Val set saved!")
     
 
 if __name__ == "__main__":
