@@ -14,12 +14,16 @@ requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://h
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/erantzunak_berridatzi.py", line 130, in <module>
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/answer_generator.py", line 233, in <module>
     main()
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/erantzunak_berridatzi.py", line 86, in main
-    pipeline = transformers.pipeline(
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/pipelines/__init__.py", line 542, in pipeline
-    config = AutoConfig.from_pretrained(model, revision=revision, _from_pipeline=task, **model_kwargs)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/answer_generator.py", line 189, in main
+    compute = ComputeResults(
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/answer_generator.py", line 65, in __init__
+    self.pipeline = self.load_pipeline()  
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/answer_generator.py", line 89, in load_pipeline
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/models/auto/tokenization_auto.py", line 485, in from_pretrained
+    config = AutoConfig.from_pretrained(
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/models/auto/configuration_auto.py", line 647, in from_pretrained
     config_dict, _ = PretrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/transformers/configuration_utils.py", line 547, in get_config_dict

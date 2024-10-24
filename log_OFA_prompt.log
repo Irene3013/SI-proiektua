@@ -1,12 +1,14 @@
+transformers version: 4.18.0.dev0
+Parsing args...
+Args parsed.
+
+Loading json files...
+Files loaded.
+
+Getting batch promps...
+Batch promps computed. 
+
+Token will not been saved to git credential helper. Pass `add_to_git_credential=True` if you want to set the git credential as well.
 Token is valid (permission: fineGrained).
-[1m[31mCannot authenticate through git-credential as no helper is defined on your machine.
-You might have to re-authenticate when pushing to the Hugging Face Hub.
-Run the following command in your terminal in case you want to set the 'store' credential helper as default.
-
-git config --global credential.helper store
-
-Read https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage for more details.[0m
-Token has not been saved to git credential helper.
 Your token has been saved to /gaueko0/users/ietxarri010/.cache/huggingface/token
 Login successful
-Parsing args...

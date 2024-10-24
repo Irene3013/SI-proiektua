@@ -6,10 +6,9 @@ import os
 import copy
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import bitsandbytes as bnb
 from huggingface_hub import login
-from progressbar import ProgressBar
-import requests
+#from progressbar import ProgressBar
+#import requests
 
 
 def create_prompt(question, answer, is_llama=False):
@@ -112,7 +111,7 @@ class ComputeResults:
         Main method for result generation. Depending on the initial configuration uses the API or the pipeline.
         """
         results = []
-        bar = ProgressBar(max_value=1 + len(batch_prompts))
+        #bar = ProgressBar(max_value=1 + len(batch_prompts))
 
         for i in range(0, len(batch_prompts), batch_size):
             batch = batch_prompts[i:i+batch_size]
@@ -125,8 +124,8 @@ class ComputeResults:
                 processed_result = self.result_processing(result, answer)
                 results.append(processed_result)
 
-            bar.update(i)
-        bar.finish()
+            #bar.update(i)
+        #bar.finish()
         return results
     
     def get_result(self, generated_text):
@@ -167,6 +166,7 @@ def parse_args():
 
 def main():
 
+    print(f"transformers version: {transformers.__version__}")
     print("Parsing args...")
     args = parse_args()
     print(f'Args parsed.')
