@@ -7,8 +7,9 @@ import copy
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from huggingface_hub import login
-#from progressbar import ProgressBar
-#import requests
+import re
+import nltk
+from nltk.stem import WordNetLemmatizer
 
 
 def create_prompt(question, answer, is_llama=False):
@@ -63,6 +64,10 @@ class ComputeResults:
         self.token = token
         self.is_llama = "llama" in model_name
         self.pipeline = self.load_pipeline()  
+        self.lemmatizer = WordNetLemmatizer()
+
+        nltk.download('punkt')
+        nltk.download('wordnet')
 
     def load_pipeline(self):
         """
@@ -116,7 +121,7 @@ class ComputeResults:
         for i in range(0, len(batch_prompts), batch_size):
             batch = batch_prompts[i:i+batch_size]
 
-            outputs = self.pipeline(batch, max_new_tokens=8, truncation=True)
+            outputs = self.pipeline(batch, max_new_tokens=10, truncation=True)
 
             for output in outputs:
                 generated_text = output[0]['generated_text']
@@ -144,9 +149,19 @@ class ComputeResults:
         Discards the longest results and replaces them with the orginal answer.
         """
         if len(result.split()) >= word_limit:
-            return answer
-        return result 
+            return self.normalize_answer(answer)
+        return self.normalize_answer(result) 
 
+    def normalize_answer(self, answer):
+        answer = answer.lower()
+        answer = re.sub(r'[^a-zA-Z\s]', '', answer)
+
+        # Tokenize and lematize
+        words = nltk.word_tokenize(answer)
+        lemmatized = [self.lemmatizer.lemmatize(word) for word in words]
+        
+        normalized_answer = ' '.join(lemmatized)
+        return normalized_answer
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -196,14 +211,12 @@ def main():
     time1 = time.time()
     train_results = compute.generate(train_batch_prompts)
     time2 = time.time()
-    print(train_results)
     print(f'Train answers generated. Time: {(time2-time1)//3600}h {((time2-time1)%3600)//60}min {int((time2-time1)%60)}s')
 
     # Compute validation results 
     print("\nGenerating validation answers...")
     val_results = compute.generate(val_batch_prompts)
     time3 = time.time()
-    print(val_results)
     print(f'Validation answers generated. Time: {(time3-time2)//3600}h {((time3-time2)%3600)//60}min {int((time3-time2)%60)}s')
 
     # Replace annotations with new answers
