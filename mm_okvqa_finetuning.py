@@ -186,7 +186,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         self.split = split
         self.transform = transform
 
-        with open(os.path.join(root, self.split, f'annotations_{self.split}.json'), "r") as f:
+        with open(os.path.join(root, self.split, f'annotations_{self.split}_llama3.1:8b.json'), "r") as f:
             self.annotations = json.load(f)
 
   def __getitem__(self, index):
