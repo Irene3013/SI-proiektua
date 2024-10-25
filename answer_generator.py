@@ -63,11 +63,11 @@ class ComputeResults:
         self.model_name = model_name
         self.token = token
         self.is_llama = "llama" in model_name
-        self.pipeline = self.load_pipeline()  
-        self.lemmatizer = WordNetLemmatizer()
+        self.pipeline = self.load_pipeline()
 
-        nltk.download('punkt')
+        nltk.download('punkt', download_dir='/gaueko0/users/ietxarri010/nltk_data')
         nltk.download('wordnet')
+	self.lemmatizer = WordNetLemmatizer()
 
     def load_pipeline(self):
         """

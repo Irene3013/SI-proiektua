@@ -8,7 +8,8 @@
 #SBATCH --error=/gaueko0/users/ietxarri010/GrAL_Irene/error_OFA_prompt.err
 
 
-source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
+#source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
+source /gaueko0/users/ietxarri010/env/nire_env/bin/activate
 
 #export TRANSFORMERS_CACHE="/gaueko0/transformers_cache/"
 #srun huggingface-cli login --token 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 --add-to-git-credential
