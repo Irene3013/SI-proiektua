@@ -1,0 +1,23 @@
+transformers version: 4.46.0
+Parsing args...
+Args parsed.
+
+Loading json files...
+Files loaded.
+
+Getting batch promps...
+Batch promps computed. 
+
+
+Generating train answers...
+Train answers generated. Time: 8.0h 3.0min 13s
+
+Generating validation answers...
+Validation answers generated. Time: 2.0h 0.0min 42s
+
+Replacing annotations answers...
+Answers replaced.
+
+Saving answers to json files...
+Train set saved!
+Val set saved!

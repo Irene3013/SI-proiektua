@@ -1,4 +1,10 @@
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/answer_generator.py", line 70
-    self.lemmatizer = WordNetLemmatizer()
-srun: error: localhost: task 0: Exited with exit code 1
-TabError: inconsistent use of tabs and spaces in indentation
+/gaueko0/users/ietxarri010/env/nire_env/lib/python3.9/site-packages/transformers/utils/hub.py:128: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:44<02:13, 44.53s/it]Loading checkpoint shards:  50%|█████     | 2/4 [01:28<01:28, 44.12s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [02:11<00:43, 43.64s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:21<00:00, 30.44s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:21<00:00, 35.41s/it]
+[nltk_data] Downloading package punkt to
+[nltk_data]     /gaueko0/users/ietxarri010/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+[nltk_data] Downloading package wordnet to
+[nltk_data]     /gaueko0/users/ietxarri010/nltk_data...
+[nltk_data]   Package wordnet is already up-to-date!
+You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset
