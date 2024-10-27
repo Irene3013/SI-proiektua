@@ -1,10 +1,37 @@
-/gaueko0/users/ietxarri010/env/nire_env/lib/python3.9/site-packages/transformers/utils/hub.py:128: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:237: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
+  transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
+/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
   warnings.warn(
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:44<02:13, 44.53s/it]Loading checkpoint shards:  50%|█████     | 2/4 [01:28<01:28, 44.12s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [02:11<00:43, 43.64s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:21<00:00, 30.44s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:21<00:00, 35.41s/it]
-[nltk_data] Downloading package punkt to
-[nltk_data]     /gaueko0/users/ietxarri010/nltk_data...
-[nltk_data]   Package punkt is already up-to-date!
-[nltk_data] Downloading package wordnet to
-[nltk_data]     /gaueko0/users/ietxarri010/nltk_data...
-[nltk_data]   Package wordnet is already up-to-date!
-You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
+
+  | Name  | Type             | Params
+-------------------------------------------
+0 | model | OFAModel         | 182 M 
+1 | loss  | CrossEntropyLoss | 0     
+-------------------------------------------
+182 M     Trainable params
+0         Non-trainable params
+182 M     Total params
+728.954   Total estimated model params size (MB)
+SLURM auto-requeueing enabled. Setting signal handlers.
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+`Trainer.fit` stopped: `max_steps=20000` reached.
+Traceback (most recent call last):
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 487, in <module>
+    main()
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 477, in main
+    trainer.test(ckpt_path = 'best', dataloaders=datamodule.test_dataloader(), verbose=False)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 264, in test_dataloader
+    dataset = OkVqaDataset(root=self.root, split=split, transform=self.transform)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 189, in __init__
+    with open(os.path.join(root, self.split, f'annotations_{self.split}_llama3.1:8b.json'), "r") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/gaueko0/users/ietxarri010/GrAL_Irene/okvqa/test/annotations_test_llama3.1:8b.json'
+srun: error: localhost: task 0: Exited with exit code 1
