@@ -186,8 +186,8 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         self.split = split
         self.transform = transform
 
-        if split == 'test': self.ann_path = f'annotations_{self.split}.json'
-        else: self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
+        if split == 'train': self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
+        else: self.ann_path = f'annotations_{self.split}.json'
 
         with open(os.path.join(root, self.split, self.ann_path), "r") as f:
             self.annotations = json.load(f)
