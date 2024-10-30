@@ -191,7 +191,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
   def get_all_answers(self):
         answers = []
-        for ann in self.annotations:
+        for ann in self.annotations["annotations"]:
             for answer in ann["answers"]:
                 answers.append(str(answer["answer"]))
         return answers
