@@ -46,15 +46,7 @@ def compute_accuracy_score(y_true, y_pred):
         total_acc += acc
     return total_acc / len(y_pred)
 
-def choose_answer(answers):
-    counts = Counter(answers)
-    repeats_3 = [answer for answer, count in counts.items() if count >= 3]
-    if repeats_3: 
-        return random.choice(repeats_3)
-    repeats_2 = [answer for answer, count in counts.items() if count >= 2]
-    if repeats_2: 
-        return random.choice(repeats_2)
-    return random.choice(answers)
+
 
 ## Load model
 class LitModel(pl.LightningModule):
@@ -186,11 +178,42 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         self.split = split
         self.transform = transform
 
-        if split == 'train': self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
+        """ SYNONIMS
+        if self.split == 'train': self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
         else: self.ann_path = f'annotations_{self.split}.json'
+        """
+        self.ann_path = f'annotations_{self.split}.json'
 
         with open(os.path.join(root, self.split, self.ann_path), "r") as f:
             self.annotations = json.load(f)
+        
+        if self.split == 'train': self.all_answers = self.get_all_answers()
+
+  def get_all_answers(self):
+        answers = []
+        for ann in self.annotations:
+            for answer in ann["answers"]:
+                answers.append(str(answer["answer"]))
+        return answers
+
+  def choose_random_answer(self, answers):
+        set_answers = set(answers)
+        chosen_answer = random.choice(self.all_answers)
+        
+        # Repeat until chosen_answers is not in answers
+        while chosen_answer in set_answers:
+            chosen_answer = random.choice(self.all_answers)
+        return chosen_answer
+
+  def choose_answer(self, answers):
+        counts = Counter(answers)
+        repeats_3 = [answer for answer, count in counts.items() if count >= 3]
+        if repeats_3: 
+            return random.choice(repeats_3)
+        repeats_2 = [answer for answer, count in counts.items() if count >= 2]
+        if repeats_2: 
+            return random.choice(repeats_2)
+        return random.choice(answers)
 
   def __getitem__(self, index):
         # Process annotations
@@ -204,7 +227,12 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         img_path = os.path.join(self.root, self.split, self.split, image_name)
         image = Image.open(img_path).convert("RGB")
         image = self.transform(image)
-        return image, question, list(answers), choose_answer(list(answers))
+
+        # Prepare output
+        if self.split == 'train': 
+            return image, question, list(answers), self.choose_random_answer(list(answers))
+
+        return image, question, list(answers), self.choose_answer(list(answers))
 
   def __len__(self):
         return len(self.annotations["annotations"])
