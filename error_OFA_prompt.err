@@ -1,6 +1,6 @@
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:240: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
+/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:268: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
   transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
   warnings.warn(
@@ -24,7 +24,7 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
 SLURM auto-requeueing enabled. Setting signal handlers.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
 `Trainer.fit` stopped: `max_steps=20000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=01-val_accuracy=0.15.ckpt
+Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.00.ckpt
 LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=01-val_accuracy=0.15.ckpt
+Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa-epoch=00-val_accuracy=0.00.ckpt
 SLURM auto-requeueing enabled. Setting signal handlers.
