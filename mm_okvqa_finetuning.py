@@ -55,13 +55,14 @@ class LitModel(pl.LightningModule):
         super().__init__()
 
         # MOVE: Load task labels
-        self.dataset = args.dataset # NOTE: 'spatialcoco'
-
+        """
+        self.dataset = args.dataset
         if self.dataset == 'spatialcoco':
             self.labels = ['yes', 'no']
             self.num_labels = 1 # NOTE: it's binary classification
             print(f'Number of labels: {self.num_labels}')
-
+        """
+        
         # Load model, tokenizer and loss function
         self.model_name = args.model
         self.model_type = args.target_model
@@ -167,7 +168,7 @@ class LitModel(pl.LightningModule):
 
 ## OK-VQA Dataset
 class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
-  def __init__(self, root, split, transform=None):
+  def __init__(self, root, split, dataset, transform=None):
         super(OkVqaDataset, self).__init__(root, transform=transform)
 
         assert os.path.exists(root), f"Root directory '{root}' does not exist."
@@ -177,17 +178,21 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         self.root = root
         self.split = split
         self.transform = transform
+        self.dataset = dataset
+        self.all_answers = None
 
-        """ SYNONIMS
-        if self.split == 'train': self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
-        else: self.ann_path = f'annotations_{self.split}.json'
-        """
-        self.ann_path = f'annotations_{self.split}.json'
+        # load annotations
+        if self.dataset == "synonyms" and self.split == 'train':
+            self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
+        elif self.dataset == "mc":
+            0
+        else: 
+            self.ann_path = f'annotations_{self.split}.json'
 
         with open(os.path.join(root, self.split, self.ann_path), "r") as f:
             self.annotations = json.load(f)
         
-        if self.split == 'train': self.all_answers = self.get_all_answers()
+        if self.split == 'train' and self.dataset == "random": self.all_answers = self.get_all_answers()
 
   def get_all_answers(self):
         answers = []
@@ -229,7 +234,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         image = self.transform(image)
 
         # Prepare output
-        if self.split == 'train': 
+        if self.split == 'train' and self.dataset == "random": 
             return image, question, list(answers), self.choose_random_answer(list(answers))
 
         return image, question, list(answers), self.choose_answer(list(answers))
@@ -251,6 +256,7 @@ class OKVQADataModule(pl.LightningDataModule):
         self.target_model = args.target_model
         self.grid_size = args.grid_size
         self.locations = args.location_encoding
+        self.dataset = args.dataset
         self.attributes = args.attributes
         self.model_name = args.model
 
@@ -272,7 +278,7 @@ class OKVQADataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         split = 'train'
-        dataset = OkVqaDataset(root=self.root, split=split, transform=self.transform)
+        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, transform=self.transform)
         params = {
             'batch_size': self.batch_size,
             'shuffle': True,
@@ -282,7 +288,7 @@ class OKVQADataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         split = 'val'
-        dataset = OkVqaDataset(root=self.root, split=split, transform=self.transform)
+        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, transform=self.transform)
         params = {
             'batch_size': self.batch_size,
             'shuffle': False,
@@ -292,7 +298,7 @@ class OKVQADataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         split = 'test'
-        dataset = OkVqaDataset(root=self.root, split=split, transform=self.transform)
+        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, transform=self.transform)
         params = {
             'batch_size': self.batch_size,
             'shuffle': False,
@@ -347,9 +353,8 @@ def parse_args():
     parser.add_argument(
         "--max_steps", type=int, default=88000, help="Steps to be done during training."
     )
-
     parser.add_argument(
-        "--dataset", type=str, default="spatialcoco", choices=["spatialcoco"],
+        "--dataset", type=str, default="original", choices=["original", "random", "synonyms", "mc"],
         help="Select dataset to be trained on."
     )
     parser.add_argument(
@@ -434,11 +439,8 @@ def main():
     # Load data
     print("Loading dataset...")
 
-    if args.dataset == 'spatialcoco': #DEFAULT: spatialcoco
-        datamodule = OKVQADataModule(args)
-
-    else:
-        raise NotImplementedError
+    #if args.dataset == 'spatialcoco': #DEFAULT: spatialcoco
+    datamodule = OKVQADataModule(args)
        
     print("Dataset loaded!")
 
