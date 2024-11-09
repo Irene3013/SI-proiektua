@@ -235,7 +235,8 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
         # Prepare output
         if self.split == 'train' and self.dataset == "random": 
-            return image, question, list(answers), self.choose_random_answer(list(answers))
+            rand_answers = [self.choose_random_answer(list(answers)) for i in range(len(list(answers)))]
+            return image, question, rand_answers, self.choose_answer(list(rand_answers))
 
         return image, question, list(answers), self.choose_answer(list(answers))
 
