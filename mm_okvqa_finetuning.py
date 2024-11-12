@@ -202,12 +202,12 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         return answers
 
   def choose_random_answer(self, answers):
-        set_answers = set(answers)
+        #set_answers = set(answers)
         chosen_answer = random.choice(self.all_answers)
         
         # Repeat until chosen_answers is not in answers
-        while chosen_answer in set_answers:
-            chosen_answer = random.choice(self.all_answers)
+        #while chosen_answer in set_answers:
+        #    chosen_answer = random.choice(self.all_answers)
         return chosen_answer
 
   def choose_answer(self, answers):
