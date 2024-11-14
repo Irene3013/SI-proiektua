@@ -66,6 +66,7 @@ class LitModel(pl.LightningModule):
         # Load model, tokenizer and loss function
         self.model_name = args.model
         self.model_type = args.target_model
+        self.dataset = args.dataset
 
         if 'OFA' in self.model_name:
             # self.model_name = os.path.join("repos", self.model_name.split("/")[-1])
@@ -89,7 +90,6 @@ class LitModel(pl.LightningModule):
         self.pretrained_on = None
         self.prev_num_labels = 0
 
-        
     def configure_optimizers(self):
         # Define optimizer and scheduler
         """
@@ -118,16 +118,17 @@ class LitModel(pl.LightningModule):
 
 
     def step(self, batch, split):
-
-        images, questions, all_targets, targets = batch
         
-        if self.model_type == "ofa":
+        if self.dataset == "mc":
+
+            images, questions, answer_choices, correct_index = batch
             
             # Images to device
             patch_images = images.to(self.device)
             
             # Get input ids
             input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
+
             
             # Get decoder_input_ids
             decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
@@ -138,22 +139,67 @@ class LitModel(pl.LightningModule):
             # Compute loss
             label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, 1:].to(self.device)
             loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
+            
+            # Calcular logits para cada opción de respuesta
+            choice_scores = []
+            for choice_input_ids in choices_input_ids:
+                outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=choice_input_ids[:, :-1])
+                
+                # Calcular el puntaje total para la opción actual
+                logits = outputs["logits"]
+                # Calcular la probabilidad de la secuencia completa para cada opción
+                choice_score = logits[:, -1, :].softmax(dim=-1).max().item()  # Obtén el máximo de la última palabra para cada opción
+                choice_scores.append(choice_score)
+
+            # Obtener el índice de la opción con mayor puntaje
+            pred_index = choice_scores.index(max(choice_scores))
+            
+            # Evaluar Accuracy
+            accuracy = 1.0 if pred_index == correct_index else 0.0
+        
+        else:
+
+            images, questions, all_targets, targets = batch
+
+            # Images to device
+            patch_images = images.to(self.device)
+            
+            # Get input ids
+            input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
+            
+            # Tokenize choices
+            choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices]
+
+            # Get correct choice
+            correct_choice_input_ids = choices_input_ids[correct_index]
+
+            # Get decoder_input_ids
+            decoder_input_ids = correct_choice_input_ids[:, :-1]
+            
+            # Get outputs 
+            outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+
+            # Compute loss
+            label_ids = correct_choice_input_ids[:, 1:]
+            loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
               
             # Generate output (to compute accuracy)
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
+
+            # Save loss
+            self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
+            
+            # Compute Accuracy
+            accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
+            self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
         
-        else:
-
-            raise NotImplementedError
-
         # Save loss
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
-        
-        # Compute Accuracy
-        accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
+
+        # Save accuracy
         self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
-        
+  
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -185,7 +231,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         if self.dataset == "synonyms" and self.split == 'train':
             self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
         elif self.dataset == "mc":
-            0
+            self.ann_path = f'annotations_{self.split}_mc.json'
         else: 
             self.ann_path = f'annotations_{self.split}.json'
 
@@ -221,10 +267,9 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         return random.choice(answers)
 
   def __getitem__(self, index):
-        # Process annotations
+        
+        # Get annotations
         annotation = self.annotations["annotations"][index]
-        question = annotation["question"]
-        answers = [str(ans["answer"]) for ans in annotation["answers"]]
 
         # Process image
         image_id = annotation["image_id"]
@@ -232,6 +277,16 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         img_path = os.path.join(self.root, self.split, self.split, image_name)
         image = Image.open(img_path).convert("RGB")
         image = self.transform(image)
+
+        # Process annotations
+        question = annotation["question"]
+
+        if self.dataset == "mc":
+            answer_choices = annotation["choices"]
+            correct_index = annotation["correct_choice_idx"]
+            return image, question, answer_choices, correct_index
+        
+        answers = [str(ans["answer"]) for ans in annotation["answers"]]
 
         # Prepare output
         if self.split == 'train' and self.dataset == "random": 
