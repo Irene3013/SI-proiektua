@@ -1,6 +1,6 @@
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:275: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
+/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:330: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
   transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
   warnings.warn(
@@ -24,9 +24,9 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 SLURM auto-requeueing enabled. Setting signal handlers.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
 Traceback (most recent call last):
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 521, in <module>
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 576, in <module>
     main()
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 504, in main
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 559, in main
     trainer.fit(model, datamodule)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 520, in fit
     call._call_and_handle_interrupt(
@@ -36,15 +36,23 @@ Traceback (most recent call last):
     self._run(model, ckpt_path=ckpt_path)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 935, in _run
     results = self._run_stage()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 978, in _run_stage
-    self.fit_loop.run()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 202, in run
-    self.on_advance_end()
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 369, in on_advance_end
-    call._call_callback_hooks(trainer, "on_train_epoch_end", monitoring_callbacks=True)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 190, in _call_callback_hooks
-    fn(trainer, trainer.lightning_module, *args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 303, in on_train_epoch_end
-    self._save_topk_checkpoint(trainer, monitor_candidates)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 360, in _save_topk_checkpoint
-    self._save_monitor_checkpoint(trainer, mo
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 976, in _run_stage
+    self._run_sanity_check()
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 1005, in _run_sanity_check
+    val_loop.run()
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/utilities.py", line 177, in _decorator
+    return loop_run(self, *args, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 115, in run
+    self._evaluation_step(batch, batch_idx, dataloader_idx)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 375, in _evaluation_step
+    output = call._call_strategy_hook(trainer, hook_name, *step_kwargs.values())
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 288, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 378, in validation_step
+    return self.model.validation_step(*args, **kwargs)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 209, in validation_step
+    return self.step(batch, split="val")
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 171, in step
+    choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices]
+UnboundLocalError: local variable 'answer_choices' referenced before assignment
+srun: error: localhost: task 0: Exited with exit code 1
