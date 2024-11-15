@@ -128,16 +128,17 @@ class LitModel(pl.LightningModule):
             
             # Get input ids
             input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
-
+            choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices]
             
             # Get decoder_input_ids
-            decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
+            correct_choice_input_ids = choices_input_ids[correct_index]
+            decoder_input_ids = correct_choice_input_ids[:, :-1]
             
             # Get outputs 
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
 
             # Compute loss
-            label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, 1:].to(self.device)
+            label_ids = correct_choice_input_ids[:, 1:]  
             loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
             
             # Calcular logits para cada opción de respuesta
@@ -167,32 +168,22 @@ class LitModel(pl.LightningModule):
             # Get input ids
             input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
             
-            # Tokenize choices
-            choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices]
-
-            # Get correct choice
-            correct_choice_input_ids = choices_input_ids[correct_index]
-
             # Get decoder_input_ids
-            decoder_input_ids = correct_choice_input_ids[:, :-1]
+            decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
             
             # Get outputs 
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
 
             # Compute loss
-            label_ids = correct_choice_input_ids[:, 1:]
+            label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, 1:].to(self.device)
             loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
               
             # Generate output (to compute accuracy)
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
-
-            # Save loss
-            self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
             
             # Compute Accuracy
             accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
-            self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
         
         # Save loss
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
