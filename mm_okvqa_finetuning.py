@@ -121,19 +121,35 @@ class LitModel(pl.LightningModule):
         
         if self.dataset == "mc":
 
-            images, questions, answer_choices, correct_index = batch
+            images, questions, answer_choices, correct_choice, correct_index = batch
+            answer_choices_t = list(zip(*answer_choices))
             
+            print(f"\nChoices batch: {answer_choices}")
+            print(f"Choices trasposed: {answer_choices_t}")
+            
+            print("\n------------------------------------------------")
+            print("BATCH INFO")
+            for i in range(len(images)):
+              print(f"Elem {i}:")
+              print(f"-> Question: {questions[i]}")
+              print(f"-> Question: {answer_choices_t[i]}")
+              print(f"-> Question: {correct_index[i]} \n")
+            print("------------------------------------------------\n")
+
             # Images to device
             patch_images = images.to(self.device)
             
             # Get input ids
             input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
-            choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices]
-            
+
+            # Get correct choices input ids
+            correct_choice_input_ids = self.tokenizer(correct_choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
+            print("Print 1 --> Correct choices to ids: ", correct_choice_input_ids)
+
             # Get decoder_input_ids
-            correct_choice_input_ids = choices_input_ids[correct_index]
             decoder_input_ids = correct_choice_input_ids[:, :-1]
-            
+            print("Print 3 --> Correct choices to decoder ids ", decoder_input_ids)
+
             # Get outputs 
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
 
@@ -143,6 +159,8 @@ class LitModel(pl.LightningModule):
             
             # Calcular logits para cada opción de respuesta
             choice_scores = []
+            choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices_t]
+
             for choice_input_ids in choices_input_ids:
                 outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=choice_input_ids[:, :-1])
                 
@@ -219,10 +237,10 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
         self.all_answers = None
 
         # load annotations
-        if self.dataset == "synonyms" and self.split == 'train':
-            self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
-        elif self.dataset == "mc":
+        if self.dataset == "mc":
             self.ann_path = f'annotations_{self.split}_mc.json'
+        elif self.dataset == "synonyms" and self.split == 'train':
+            self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
         else: 
             self.ann_path = f'annotations_{self.split}.json'
 
@@ -274,8 +292,9 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
         if self.dataset == "mc":
             answer_choices = annotation["choices"]
-            correct_index = annotation["correct_choice_idx"]
-            return image, question, answer_choices, correct_index
+            correct_index = int(annotation["correct_choice_idx"])
+            correct_choice = annotation["correct_choice"]
+            return image, question, answer_choices, correct_choice, correct_index
         
         answers = [str(ans["answer"]) for ans in annotation["answers"]]
 
