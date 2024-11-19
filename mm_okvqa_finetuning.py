@@ -67,6 +67,7 @@ class LitModel(pl.LightningModule):
         self.model_name = args.model
         self.model_type = args.target_model
         self.dataset = args.dataset
+        self.batch_size = args.batch_size
 
         if 'OFA' in self.model_name:
             # self.model_name = os.path.join("repos", self.model_name.split("/")[-1])
@@ -117,30 +118,17 @@ class LitModel(pl.LightningModule):
             return [optimizer], [scheduler]
 
     def create_mc_input(self, question, choices, type=1):
-        if type: return f'{question} choose from: {"\t".join(choices)}'
+        str_choices = " \t ".join(choices)
+        if type: return f'{question} choose from: {str_choices}\n'
 
     def step(self, batch, split):
         
         if self.dataset == "mc":
 
-            images, questions, answer_choices, correct_choice, correct_index = batch
+            images, questions, answer_choices, correct_choices, correct_index = batch
             answer_choices_t = list(zip(*answer_choices))
-            batch_size = len(images)
-            
-            print(f"\nChoices batch: {answer_choices}")
-            print(f"Choices trasposed: {answer_choices_t}")
             
             inputs = [self.create_mc_input(question, choices) for question, choices in zip(questions, answer_choices_t)]
-            print(f"\nINPUTS: {inputs}")
-
-            print("\n------------------------------------------------")
-            print("BATCH INFO")
-            for i in range(len(images)):
-              print(f"Elem {i}:")
-              print(f"-> Question: {questions[i]}")
-              print(f"-> Question: {answer_choices_t[i]}")
-              print(f"-> Question: {correct_index[i]} \n")
-            print("------------------------------------------------\n")
 
             # Images to device
             patch_images = images.to(self.device)
@@ -148,58 +136,39 @@ class LitModel(pl.LightningModule):
             # Get input ids
             input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
 
-            # Get decoder_input_ids
-            decoder_input_ids = input_ids[0, 0]
-            print("\ndecoder input ids ",decoder_input_ids)
+            # Get decoder input ids
+            decoder_input_ids = (torch.ones((batch_size, 1),  dtype=torch.long) * self.tokenizer.bos_token_id).to(self.device)
 
+            #Get label ids
+            label_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
+
+            # Get output logits
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+            logits = outputs["logits"] 
 
-            #Compute Loss
-            label_ids = self.tokenizer(correct_choice, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
-            loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
+            # Add padding to logits:
+            batch_size, seq_len, vocab_size = logits.shape
+            target_seq_len = label_ids.shape[1]
+            padding = torch.full((batch_size, target_seq_len - seq_len, vocab_size), fill_value=-1e9, device=self.device)
+            logits_padded = torch.cat([logits, padding], dim=1)  
+
+            # Compute loss
+            logits = logits_padded.view(-1, logits_padded.size(-1))          
+            labels = label_ids.view(-1)
+            
+            print(f"Correct Choices: {correct_choices}")
+            loss = self.loss(logits, labels)
 
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
 
             print(f'GENERATED: {pred_text}')
             
-            #Compute accuracy:
+            #Compute accuracy
+            correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(pred_text, list(correct_choices))])
+            accuracy = correct_count / self.batch_size
 
-            """
-                # Get correct choices input ids
-                correct_choice_input_ids = self.tokenizer(correct_choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
-                print("Print 1 --> Correct choices to ids: ", correct_choice_input_ids)
-
-                # Get decoder_input_ids
-                decoder_input_ids = correct_choice_input_ids[:, :-1]
-                print("Print 3 --> Correct choices to decoder ids ", decoder_input_ids)
-
-                # Get outputs 
-                outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
-
-                # Compute loss
-                label_ids = correct_choice_input_ids[:, 1:]  
-                loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
-                
-                # Calcular logits para cada opción de respuesta
-                choice_scores = []
-                choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices_t]
-
-                for choice_input_ids in choices_input_ids:
-                    outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=choice_input_ids[:, :-1])
-                    
-                    # Calcular el puntaje total para la opción actual
-                    logits = outputs["logits"]
-                    # Calcular la probabilidad de la secuencia completa para cada opción
-                    choice_score = logits[:, -1, :].softmax(dim=-1).max().item()  # Obtén el máximo de la última palabra para cada opción
-                    choice_scores.append(choice_score)
-
-                # Obtener el índice de la opción con mayor puntaje
-                pred_index = choice_scores.index(max(choice_scores))
-                
-                # Evaluar Accuracy
-                accuracy = 1.0 if pred_index == correct_index else 0.0
-            """
+            print(f'LOSS: {loss} \t ACCURACY: {accuracy}')
             
         
         else:
