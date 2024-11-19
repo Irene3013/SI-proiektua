@@ -116,6 +116,8 @@ class LitModel(pl.LightningModule):
             }
             return [optimizer], [scheduler]
 
+    def create_mc_input(self, question, choices, type=1):
+        if type: return f'{question} choose from: {"\t".join(choices)}'
 
     def step(self, batch, split):
         
@@ -123,10 +125,14 @@ class LitModel(pl.LightningModule):
 
             images, questions, answer_choices, correct_choice, correct_index = batch
             answer_choices_t = list(zip(*answer_choices))
+            batch_size = len(images)
             
             print(f"\nChoices batch: {answer_choices}")
             print(f"Choices trasposed: {answer_choices_t}")
             
+            inputs = [self.create_mc_input(question, choices) for question, choices in zip(questions, answer_choices_t)]
+            print(f"\nINPUTS: {inputs}")
+
             print("\n------------------------------------------------")
             print("BATCH INFO")
             for i in range(len(images)):
@@ -140,41 +146,61 @@ class LitModel(pl.LightningModule):
             patch_images = images.to(self.device)
             
             # Get input ids
-            input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
-
-            # Get correct choices input ids
-            correct_choice_input_ids = self.tokenizer(correct_choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
-            print("Print 1 --> Correct choices to ids: ", correct_choice_input_ids)
+            input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
 
             # Get decoder_input_ids
-            decoder_input_ids = correct_choice_input_ids[:, :-1]
-            print("Print 3 --> Correct choices to decoder ids ", decoder_input_ids)
+            decoder_input_ids = input_ids[0, 0]
+            print("\ndecoder input ids ",decoder_input_ids)
 
-            # Get outputs 
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
 
-            # Compute loss
-            label_ids = correct_choice_input_ids[:, 1:]  
+            #Compute Loss
+            label_ids = self.tokenizer(correct_choice, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
             loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
-            
-            # Calcular logits para cada opción de respuesta
-            choice_scores = []
-            choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices_t]
 
-            for choice_input_ids in choices_input_ids:
-                outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=choice_input_ids[:, :-1])
+            gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
+            pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
+
+            print(f'GENERATED: {pred_text}')
+            
+            #Compute accuracy:
+
+            """
+                # Get correct choices input ids
+                correct_choice_input_ids = self.tokenizer(correct_choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
+                print("Print 1 --> Correct choices to ids: ", correct_choice_input_ids)
+
+                # Get decoder_input_ids
+                decoder_input_ids = correct_choice_input_ids[:, :-1]
+                print("Print 3 --> Correct choices to decoder ids ", decoder_input_ids)
+
+                # Get outputs 
+                outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+
+                # Compute loss
+                label_ids = correct_choice_input_ids[:, 1:]  
+                loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
                 
-                # Calcular el puntaje total para la opción actual
-                logits = outputs["logits"]
-                # Calcular la probabilidad de la secuencia completa para cada opción
-                choice_score = logits[:, -1, :].softmax(dim=-1).max().item()  # Obtén el máximo de la última palabra para cada opción
-                choice_scores.append(choice_score)
+                # Calcular logits para cada opción de respuesta
+                choice_scores = []
+                choices_input_ids = [self.tokenizer(choice, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device) for choice in answer_choices_t]
 
-            # Obtener el índice de la opción con mayor puntaje
-            pred_index = choice_scores.index(max(choice_scores))
+                for choice_input_ids in choices_input_ids:
+                    outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=choice_input_ids[:, :-1])
+                    
+                    # Calcular el puntaje total para la opción actual
+                    logits = outputs["logits"]
+                    # Calcular la probabilidad de la secuencia completa para cada opción
+                    choice_score = logits[:, -1, :].softmax(dim=-1).max().item()  # Obtén el máximo de la última palabra para cada opción
+                    choice_scores.append(choice_score)
+
+                # Obtener el índice de la opción con mayor puntaje
+                pred_index = choice_scores.index(max(choice_scores))
+                
+                # Evaluar Accuracy
+                accuracy = 1.0 if pred_index == correct_index else 0.0
+            """
             
-            # Evaluar Accuracy
-            accuracy = 1.0 if pred_index == correct_index else 0.0
         
         else:
 
@@ -246,8 +272,6 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
         with open(os.path.join(root, self.split, self.ann_path), "r") as f:
             self.annotations = json.load(f)
-        
-        if self.split == 'train' and self.dataset == "random": self.all_answers = self.get_all_answers()
 
   def get_all_answers(self):
         answers = []
@@ -256,13 +280,9 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
                 answers.append(str(answer["answer"]))
         return answers
 
-  def choose_random_answer(self, answers):
-        #set_answers = set(answers)
+  def choose_random_answer(self):
+        self.all_answers = self.get_all_answers()
         chosen_answer = random.choice(self.all_answers)
-        
-        # Repeat until chosen_answers is not in answers
-        #while chosen_answer in set_answers:
-        #    chosen_answer = random.choice(self.all_answers)
         return chosen_answer
 
   def choose_answer(self, answers):
@@ -300,7 +320,7 @@ class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
 
         # Prepare output
         if self.split == 'train' and self.dataset == "random": 
-            rand_answers = [self.choose_random_answer(list(answers)) for i in range(len(list(answers)))]
+            rand_answers = [self.choose_random_answer()]
             return image, question, rand_answers, self.choose_answer(list(rand_answers))
 
         return image, question, list(answers), self.choose_answer(list(answers))
