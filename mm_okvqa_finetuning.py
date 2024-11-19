@@ -137,7 +137,7 @@ class LitModel(pl.LightningModule):
             input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
 
             # Get decoder input ids
-            decoder_input_ids = (torch.ones((batch_size, 1),  dtype=torch.long) * self.tokenizer.bos_token_id).to(self.device)
+            decoder_input_ids = (torch.ones((self.batch_size, 1),  dtype=torch.long) * self.tokenizer.bos_token_id).to(self.device)
 
             #Get label ids
             label_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
