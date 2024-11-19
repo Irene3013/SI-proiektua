@@ -156,19 +156,15 @@ class LitModel(pl.LightningModule):
             logits = logits_padded.view(-1, logits_padded.size(-1))          
             labels = label_ids.view(-1)
             
-            print(f"Correct Choices: {correct_choices}")
             loss = self.loss(logits, labels)
 
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
-
-            print(f'GENERATED: {pred_text}')
-            
+      
             #Compute accuracy
             correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(pred_text, list(correct_choices))])
             accuracy = correct_count / self.batch_size
 
-            print(f'LOSS: {loss} \t ACCURACY: {accuracy}')
             
         
         else:
