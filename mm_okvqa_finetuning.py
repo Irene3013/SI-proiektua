@@ -117,18 +117,13 @@ class LitModel(pl.LightningModule):
             }
             return [optimizer], [scheduler]
 
-    def create_mc_input(self, question, choices, type=1):
-        str_choices = " \t ".join(choices)
-        if type: return f'{question} choose from: {str_choices}\n'
+    
 
     def step(self, batch, split):
         
         if self.dataset == "mc":
 
-            images, questions, answer_choices, correct_choices, correct_index = batch
-            answer_choices_t = list(zip(*answer_choices))
-            
-            inputs = [self.create_mc_input(question, choices) for question, choices in zip(questions, answer_choices_t)]
+            images, inputs, correct_choices = batch
 
             # Images to device
             patch_images = images.to(self.device)
@@ -136,16 +131,27 @@ class LitModel(pl.LightningModule):
             # Get input ids
             input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
 
-            # Get decoder input ids
+            # Get decoder input ids ([bos] * batch_size)
             decoder_input_ids = (torch.ones((self.batch_size, 1),  dtype=torch.long) * self.tokenizer.bos_token_id).to(self.device)
-
-            #Get label ids
-            label_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
+            decoder_input_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
 
             # Get output logits
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
             logits = outputs["logits"] 
 
+            predicted_token_ids = torch.argmax(logits, dim=-1)  # [batch_size, seq_len]
+
+            # Decodificar los tokens a texto
+            predicted_text = self.tokenizer.batch_decode(predicted_token_ids, skip_special_tokens=True)
+
+            # Mostrar las predicciones
+            #for i, text in enumerate(predicted_text):
+            #    print(f"Sample {i}: {text}")
+
+            #Get label ids
+            label_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
+            labels = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
+            """
             # Add padding to logits:
             batch_size, seq_len, vocab_size = logits.shape
             target_seq_len = label_ids.shape[1]
@@ -153,20 +159,30 @@ class LitModel(pl.LightningModule):
             logits_padded = torch.cat([logits, padding], dim=1)  
 
             # Compute loss
-            logits = logits_padded.view(-1, logits_padded.size(-1))          
-            labels = label_ids.view(-1)
+            print(f'logits: {logits.shape}, labels: {label.shape}')
+
+            logits = logits_padded.view(-1, logits_padded.size(-1))  # with padding
+            """
+
+            #print(f'logits: {logits.shape}, labels: {labels.shape}')
+
+            # Compute loss
+            logits = logits.reshape(-1, logits.size(-1)) # without padding       
+            labels = label_ids.view(-1)    
             
             loss = self.loss(logits, labels)
 
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
-      
+
+            #print(f'pred: {pred_text} \ncorrect: {correct_choices}')
+            #print('-------------------------------------------------\n')
+
             #Compute accuracy
             correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(pred_text, list(correct_choices))])
             accuracy = correct_count / self.batch_size
 
-            
-        
+                 
         else:
 
             images, questions, all_targets, targets = batch
@@ -191,14 +207,16 @@ class LitModel(pl.LightningModule):
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
             pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
             
+            print(f'logits: {outputs["logits"].shape} \nlabels: {label_ids.shape}\n')
+
             # Compute Accuracy
             accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
         
         # Save loss
-        self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
+        self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=self.batch_size)
 
         # Save accuracy
-        self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=len(questions))
+        self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=self.batch_size)
   
         return loss
 
@@ -213,85 +231,92 @@ class LitModel(pl.LightningModule):
         
 
 ## OK-VQA Dataset
-class OkVqaDataset (torchvision.datasets.vision.VisionDataset):
-  def __init__(self, root, split, dataset, transform=None):
-        super(OkVqaDataset, self).__init__(root, transform=transform)
+class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
+    def __init__(self, root: str, split: str, dataset: str, transform = None):
+        super().__init__(root, transform=transform)
 
+        # Validations
         assert os.path.exists(root), f"Root directory '{root}' does not exist."
-        assert split in ['train', 'val', 'test'], f"Unsupported split: {split}"
-        assert transform is not None, "Invalid 'None' transform value, a transorm must be provided."
+        assert split in ['train', 'val', 'test'], f"Unsupported split: '{split}'. Must be one of ['train', 'val', 'test']."
+        assert transform is not None, "Transform cannot be None. Please provide a valid transform."
 
         self.root = root
         self.split = split
-        self.transform = transform
         self.dataset = dataset
+        self.transform = transform
         self.all_answers = None
 
-        # load annotations
+        # Load annotations
+        self.ann_path = self._get_annotation_path()
+        with open(self.ann_path, "r") as f:
+            self.annotations = json.load(f)["annotations"]
+
+
+    def _get_annotation_path(self):
         if self.dataset == "mc":
-            self.ann_path = f'annotations_{self.split}_mc.json'
+            ann_file = f'annotations_{self.split}_mc.json'
         elif self.dataset == "synonyms" and self.split == 'train':
-            self.ann_path = f'annotations_{self.split}_llama3.1:8b.json'
-        else: 
-            self.ann_path = f'annotations_{self.split}.json'
+            ann_file = f'annotations_{self.split}_llama3.1:8b.json'
+        else:
+            ann_file = f'annotations_{self.split}.json'
+        return os.path.join(self.root, self.split, ann_file)
 
-        with open(os.path.join(root, self.split, self.ann_path), "r") as f:
-            self.annotations = json.load(f)
 
-  def get_all_answers(self):
-        answers = []
-        for ann in self.annotations["annotations"]:
-            for answer in ann["answers"]:
-                answers.append(str(answer["answer"]))
-        return answers
+    def get_all_answers(self):
+        if self.all_answers is None:
+            self.all_answers = [str(answer["answer"]) for ann in self.annotations for answer in ann["answers"]]
+        return self.all_answers
 
-  def choose_random_answer(self):
-        self.all_answers = self.get_all_answers()
-        chosen_answer = random.choice(self.all_answers)
-        return chosen_answer
 
-  def choose_answer(self, answers):
+    def choose_random_answer(self):
+        if self.all_answers is None:
+            self.get_all_answers()
+        return random.choice(self.all_answers)
+
+
+    def choose_answer(self, answers):
         counts = Counter(answers)
-        repeats_3 = [answer for answer, count in counts.items() if count >= 3]
-        if repeats_3: 
-            return random.choice(repeats_3)
-        repeats_2 = [answer for answer, count in counts.items() if count >= 2]
-        if repeats_2: 
-            return random.choice(repeats_2)
+        for threshold in [3, 2]: 
+            candidates = [ans for ans, count in counts.items() if count >= threshold]
+            if candidates:
+                return random.choice(candidates)
         return random.choice(answers)
 
-  def __getitem__(self, index):
-        
-        # Get annotations
-        annotation = self.annotations["annotations"][index]
 
-        # Process image
-        image_id = annotation["image_id"]
+    def create_mc_input(self, question, choices):
+        str_choices = " \t ".join(choices)
+        return f'{question} choose from: {str_choices}\n'
+
+
+    def _load_image(self, image_id):
         image_name = f'okvqa_{self.split}_{str(image_id).zfill(12)}.jpg'
         img_path = os.path.join(self.root, self.split, self.split, image_name)
+        if not os.path.exists(img_path):
+            raise FileNotFoundError(f"Image not found: {img_path}")
         image = Image.open(img_path).convert("RGB")
-        image = self.transform(image)
+        return self.transform(image)
 
-        # Process annotations
+
+    def __getitem__(self, index):
+        annotation = self.annotations[index]
+        image = self._load_image(annotation["image_id"])
         question = annotation["question"]
 
         if self.dataset == "mc":
             answer_choices = annotation["choices"]
-            correct_index = int(annotation["correct_choice_idx"])
             correct_choice = annotation["correct_choice"]
-            return image, question, answer_choices, correct_choice, correct_index
-        
+            return image, self.create_mc_input(question, answer_choices), correct_choice
+
         answers = [str(ans["answer"]) for ans in annotation["answers"]]
+        if self.split == 'train' and self.dataset == "random":
+            random_answers = [self.choose_random_answer()]
+            return image, question, random_answers, self.choose_answer(random_answers)
 
-        # Prepare output
-        if self.split == 'train' and self.dataset == "random": 
-            rand_answers = [self.choose_random_answer()]
-            return image, question, rand_answers, self.choose_answer(list(rand_answers))
+        return image, question, answers, self.choose_answer(answers)
 
-        return image, question, list(answers), self.choose_answer(list(answers))
 
-  def __len__(self):
-        return len(self.annotations["annotations"])
+    def __len__(self) -> int:
+        return len(self.annotations)
 
 ## Data Module
 class OKVQADataModule(pl.LightningDataModule):
