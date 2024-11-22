@@ -9,8 +9,6 @@ from collections import Counter
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-# from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
-# from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 import torch
 from torch import optim
@@ -40,13 +38,15 @@ class LitModel(pl.LightningModule):
             self.mc_type = int(self.dataset[2])
 
         if 'OFA' in self.model_name:
-            # self.model_name = os.path.join("repos", self.model_name.split("/")[-1])
             self.tokenizer = OFATokenizer.from_pretrained(self.model_name, use_cache=True)
             self.model = OFAModel.from_pretrained(self.model_name, use_cache=True)
             self.loss = CrossEntropyLoss()
-
         else:
             raise NotImplementedError
+
+        self.option_tokens = None
+        if self.mc_type == 2:
+            self.option_tokens = [self.tokenizer.convert_tokens_to_ids(option) for option in ["a", "b", "c", "d", "e"]]
 
         # Define other hyperparameters
         self.warmup_steps = args.warmup_steps
@@ -59,6 +59,7 @@ class LitModel(pl.LightningModule):
         # self.deepspeed = args.deepspeed
         self.pretrained_on = None
         self.prev_num_labels = 0
+
 
     def configure_optimizers(self):
 
@@ -73,35 +74,90 @@ class LitModel(pl.LightningModule):
             }
             return [optimizer], [scheduler]
 
-    
-    def okvqa_accuracy_score(self, y_true, y_pred):
+
+    def vqa_score(self, y_true, y_pred):
+        """
+        Calculates VQA-score accuracy.
+        - Each `y_true` is compared against other elements in `y_true`.
+        - Accuracy is calculated as the proportion of correct predictions normalized to 1.
+        """
         total_acc = 0
         for out in range(len(y_true)):
-            candidates = [y_true[i] for i in range(len(y_true)) if i != out]
+            candidates = set(y_true[i] for i in range(len(y_true)) if i != out)
             acc = sum(1 for candidate in candidates if candidate == y_pred)
-            total_acc += min(acc / 3, 1)
+            total_acc += min(acc/3, 1)
         return total_acc / len(y_true)
 
 
     def compute_accuracy_score(self, y_true, y_pred):
+        """
+        Computes accuracy score for the given predictions and true labels.
+        - `mc_type == 1`: Compares strings for exact match.
+        - `mc_type == 2`: Matches predicted option (e.g., "a", "b") with ground truth.
+        - Default: Calculates VQA-score accuracy.
+        """
         if self.mc_type == 1:
-            correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(y_pred, list(y_true))])
-            return correct_count / self.batch_size
+            # Exact string match
+            return sum(gen.strip().lower() == correct.strip().lower() for gen, correct in zip(y_pred, y_true)) / self.batch_size
 
         elif self.mc_type == 2:
-            0 #TODO
+            # Exact match for multiple-choice options
+            return sum(pred == true for pred, true in zip(y_pred, y_true)) / self.batch_size
+
         else:
+            # VQA-score accuracy 
             total_acc = 0
             for true_targets, pred in zip(y_true, y_pred):
-                acc = self.okvqa_accuracy_score(true_targets, pred.lstrip())
-                total_acc += acc
-            return total_acc / len(y_pred)
+                total_acc += self.vqa_score(true_targets, pred.lstrip())
+            return total_acc / self.batch_size
     
 
-    def step(self, batch, split):
-        
-        images, inputs, targets, all_targets = batch
+    def handle_mc_type_2(self, input_ids, patch_images, targets):
+        seq_len = input_ids.size(1)
+        decoder_input_ids = torch.ones((input_ids.size(0), seq_len), dtype=torch.long) * self.tokenizer.bos_token_id
+        decoder_input_ids = decoder_input_ids.to(self.device)
 
+        if decoder_input_ids.size(1) != input_ids.size(1):
+            print(f"Warning: Mismatched decoder_input_ids dimensions. Fixing...")
+            decoder_input_ids = decoder_input_ids[:, :input_ids.size(1)]
+
+        outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+
+        logits_for_options = outputs["logits"][:, -1, self.option_tokens]
+        loss = self.compute_loss(logits_for_options, targets)
+        
+        probabilities = torch.nn.functional.softmax(logits_for_options, dim=-1)
+        y_pred = torch.argmax(probabilities, dim=-1)
+        accuracy = self.compute_accuracy_score(targets, y_pred)
+
+        return loss, accuracy
+
+    
+    def handle_mc_type_1(self, input_ids, patch_images, targets):
+        label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
+        
+        seq_len = label_ids.size(1)
+        decoder_input_ids = torch.ones((input_ids.size(0), seq_len), dtype=torch.long) * self.tokenizer.bos_token_id
+        decoder_input_ids = decoder_input_ids.to(self.device)
+
+        outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+        loss = self.compute_loss(outputs["logits"], label_ids)
+
+        gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
+        y_pred = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
+        y_true = list(targets)
+        accuracy = self.compute_accuracy_score(targets, y_pred)
+
+        return loss, accuracy
+
+
+    def compute_loss(self, logits, labels):
+        return self.loss(logits.view(-1, logits.size(-1)), labels.view(-1))
+
+
+    def step(self, batch, split):
+        images, inputs, targets, all_targets = batch
+        
         # Images to device
         patch_images = images.to(self.device)
 
@@ -109,81 +165,28 @@ class LitModel(pl.LightningModule):
         input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
 
         if "mc" in self.dataset:
-
-            # Get decoder input ids ([bos] * batch_size)
-            decoder_input_ids = (torch.ones((self.batch_size, 1),  dtype=torch.long) * self.tokenizer.bos_token_id).to(self.device)
-            decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
-
-            # Get output logits
-            outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
-            logits = outputs["logits"] 
-
-            #predicted_token_ids = torch.argmax(logits, dim=-1)  # [batch_size, seq_len]
-
-            # Decodificar los tokens a texto
-            #predicted_text = self.tokenizer.batch_decode(predicted_token_ids, skip_special_tokens=True)
-
-            # Mostrar las predicciones
-            #for i, text in enumerate(predicted_text):
-            #    print(f"Sample {i}: {text}")
-
-            #Get label ids
-            label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
-            """
-            # Add padding to logits:
-            batch_size, seq_len, vocab_size = logits.shape
-            target_seq_len = label_ids.shape[1]
-            padding = torch.full((batch_size, target_seq_len - seq_len, vocab_size), fill_value=-1e9, device=self.device)
-            logits_padded = torch.cat([logits, padding], dim=1)  
-
-            # Compute loss
-            print(f'logits: {logits.shape}, labels: {label.shape}')
-
-            logits = logits_padded.view(-1, logits_padded.size(-1))  # with padding
-            """
-
-            #print(f'logits: {logits.shape}, labels: {labels.shape}')
-
-            # Compute loss
-            logits = logits.reshape(-1, logits.size(-1)) # without padding       
-            labels = label_ids.view(-1)    
-            
-            loss = self.loss(logits, labels)
-
-            gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
-            y_pred = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
-            y_true = list(targets)
-            #print(f'pred: {pred_text} \ncorrect: {correct_choices}')
-            #print('-------------------------------------------------\n')
-
-                 
+            if self.mc_type == 2:
+                # Handle mc_type 2
+                loss, accuracy = self.handle_mc_type_2(input_ids, patch_images, targets)
+            else:
+                # Handle mc_type 1
+                loss, accuracy = self.handle_mc_type_1(input_ids, patch_images, targets)
         else:
-            
-            # Get decoder_input_ids
             decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
-            
-            # Get outputs 
-            outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
-
-            # Compute loss
             label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, 1:].to(self.device)
-            loss = self.loss(outputs["logits"].reshape(-1, outputs["logits"].size(-1)), label_ids.reshape(-1))
-              
-            # Generate output (to compute accuracy)
-            gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
+
+            outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+            loss = self.compute_loss(outputs["logits"], label_ids)
+
+            gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False)  # Greedy
             y_pred = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
             y_true = list(zip(*all_targets))
-            print(f'logits: {outputs["logits"].shape} \nlabels: {label_ids.shape}\n')
+            accuracy = self.compute_accuracy_score(y_true, y_pred)
 
-        # Compute Accuracy
-        accuracy = self.compute_accuracy_score(y_true, y_pred)
-        
-        # Save loss
+        # Logging
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=self.batch_size)
-
-        # Save accuracy
         self.log(f'{split}_accuracy', accuracy, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=self.batch_size)
-  
+
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -198,7 +201,7 @@ class LitModel(pl.LightningModule):
 
 ## OK-VQA Dataset
 class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
-    def __init__(self, root: str, split: str, dataset: str, transform = None):
+    def __init__(self, root, split, dataset, synonyms, transform = None):
         super().__init__(root, transform=transform)
 
         # Validations
@@ -210,12 +213,16 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
         self.split = split
         self.dataset = dataset
         self.transform = transform
+        self.synonyms = ''
         self.all_answers = None
-        self.mc_map = {0:"a", 1:"b", 2:"c", 3:"d", 4:"e", 5:"d"}
         self.mc_type = None
+
         if "mc" in self.dataset:
             self.mc_type = int(self.dataset[2])
 
+        if synonyms:
+          self.synonyms = '_llama3.1_8b'
+            
         # Load annotations
         self.ann_path = self._get_annotation_path()
         with open(self.ann_path, "r") as f:
@@ -224,11 +231,9 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
     def _get_annotation_path(self):
         if "mc" in self.dataset:
-            ann_file = f'annotations_{self.split}_mc.json'
-        elif self.dataset == "synonyms" and self.split == 'train':
-            ann_file = f'annotations_{self.split}_llama3.1:8b.json'
+              ann_file = f'annotations_{self.split}_mc{self.synonyms}.json'
         else:
-            ann_file = f'annotations_{self.split}.json'
+            ann_file = f'annotations_{self.split}{self.synonyms}.json'
         return os.path.join(self.root, self.split, ann_file)
 
 
@@ -254,7 +259,7 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
 
     def create_mc_input(self, question, choices):
-        if self.mc_type:
+        if self.mc_type == 1:
             str_choices = " \t ".join(choices)
             return f'{question} choose from: {str_choices}\n'
         else:
@@ -278,10 +283,10 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
         if "mc" in self.dataset:
             answer_choices = annotation["choices"]
-            if self.mc_type: 
+            if self.mc_type == 1: 
                 correct_choice = annotation["correct_choice"]
             else: 
-                correct_choice = self.mc_map[annotation["correct_choice_idx"]]
+                correct_choice = annotation["correct_choice_idx"]
             return image, self.create_mc_input(question, answer_choices), correct_choice, 0
 
         answers = [str(ans["answer"]) for ans in annotation["answers"]]
@@ -310,6 +315,7 @@ class OKVQADataModule(pl.LightningDataModule):
         self.grid_size = args.grid_size
         self.locations = args.location_encoding
         self.dataset = args.dataset
+        self.synonyms = args.synonyms
         self.attributes = args.attributes
         self.model_name = args.model
 
@@ -331,7 +337,7 @@ class OKVQADataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         split = 'train'
-        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, transform=self.transform)
+        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, synonyms=self.synonyms, transform=self.transform)
         params = {
             'batch_size': self.batch_size,
             'shuffle': True,
@@ -341,7 +347,7 @@ class OKVQADataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         split = 'val'
-        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, transform=self.transform)
+        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, synonyms=False, transform=self.transform)
         params = {
             'batch_size': self.batch_size,
             'shuffle': False,
@@ -351,7 +357,7 @@ class OKVQADataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         split = 'test'
-        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, transform=self.transform)
+        dataset = OkVqaDataset(root=self.root, split=split, dataset=self.dataset, synonyms=False, transform=self.transform)
         params = {
             'batch_size': self.batch_size,
             'shuffle': False,
@@ -407,8 +413,10 @@ def parse_args():
         "--max_steps", type=int, default=88000, help="Steps to be done during training."
     )
     parser.add_argument(
-        "--dataset", type=str, default="original", choices=["original", "random", "synonyms", "mc1", "mc2"],
-        help="Select dataset to be trained on."
+        "--dataset", type=str, default="original", choices=["original", "random", "mc1", "mc2"], help="Select dataset to be trained on."
+    )
+    parser.add_argument(
+        "--synonyms", action="store_true", help="Use answer synonyms."
     )
     parser.add_argument(
         "--root", type=str, default="/gscratch3/users/gazkune/datasets/vsr/vsr_seq2seq_files", help="Path to the Coco or VinVL prediction files."
