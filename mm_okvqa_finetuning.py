@@ -35,6 +35,9 @@ class LitModel(pl.LightningModule):
         self.model_type = args.target_model
         self.dataset = args.dataset
         self.batch_size = args.batch_size
+        self.mc_type = None
+        if "mc" in self.dataset:
+            self.mc_type = int(self.dataset[2])
 
         if 'OFA' in self.model_name:
             # self.model_name = os.path.join("repos", self.model_name.split("/")[-1])
@@ -81,11 +84,11 @@ class LitModel(pl.LightningModule):
 
 
     def compute_accuracy_score(self, y_true, y_pred):
-        if self.dataset == "mc1":
+        if self.mc_type == 1:
             correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(y_pred, list(y_true))])
             return correct_count / self.batch_size
 
-        elif self.dataset == "mc2":
+        elif self.mc_type == 2:
             0 #TODO
         else:
             total_acc = 0
@@ -209,6 +212,9 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
         self.transform = transform
         self.all_answers = None
         self.mc_map = {0:"a", 1:"b", 2:"c", 3:"d", 4:"e", 5:"d"}
+        self.mc_type = None
+        if "mc" in self.dataset:
+            self.mc_type = int(self.dataset[2])
 
         # Load annotations
         self.ann_path = self._get_annotation_path()
@@ -248,7 +254,7 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
 
     def create_mc_input(self, question, choices):
-        if self.dataset == "mc1":
+        if self.mc_type:
             str_choices = " \t ".join(choices)
             return f'{question} choose from: {str_choices}\n'
         else:
@@ -272,11 +278,10 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
         if "mc" in self.dataset:
             answer_choices = annotation["choices"]
-            correct_index = annotation["correct_choice_idx"]
-            if "1" in self.dataset: 
+            if self.mc_type: 
                 correct_choice = annotation["correct_choice"]
             else: 
-                correct_choice = [self.mc_map[idx] for idx in correct_index]
+                correct_choice = self.mc_map[annotation["correct_choice_idx"]]
             return image, self.create_mc_input(question, answer_choices), correct_choice, 0
 
         answers = [str(ans["answer"]) for ans in annotation["answers"]]
@@ -287,7 +292,7 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
         return image, question, self.choose_answer(answers),  answers
 
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self.annotations)
 
 ## Data Module
