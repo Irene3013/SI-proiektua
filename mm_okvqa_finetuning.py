@@ -22,30 +22,6 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 import transformers
 from transformers import OFATokenizer, OFAModel
 
-def to_one_hot(y_tensor, n_dims=None):
-    """ Take integer y (tensor or variable) with n dims and convert it to 1-hot representation with n+1 dims. """
-    y_tensor = y_tensor.type(torch.LongTensor).view(-1, 1)
-    y_one_hot = torch.zeros(y_tensor.size()[0], n_dims).scatter_(1, y_tensor, 1)
-    return y_one_hot
-
-def okvqa_accuracy_score(y_true, y_pred):
-    total_acc = 0
-    for out in range(len(y_true)):
-        candidates = [y_true[i] for i in range(len(y_true)) if i != out]
-        acc = sum(1 for candidate in candidates if candidate == y_pred)
-        total_acc += min(acc / 3, 1)
-    return total_acc / len(y_true)
-
-def preprocess_prediction(pred):
-    return pred.lstrip()
-
-def compute_accuracy_score(y_true, y_pred):
-    total_acc = 0
-    for true_targets, pred in zip(y_true, y_pred):
-        acc = okvqa_accuracy_score(true_targets, preprocess_prediction(pred))
-        total_acc += acc
-    return total_acc / len(y_pred)
-
 
 
 ## Load model
@@ -53,15 +29,6 @@ class LitModel(pl.LightningModule):
 
     def __init__(self, args):
         super().__init__()
-
-        # MOVE: Load task labels
-        """
-        self.dataset = args.dataset
-        if self.dataset == 'spatialcoco':
-            self.labels = ['yes', 'no']
-            self.num_labels = 1 # NOTE: it's binary classification
-            print(f'Number of labels: {self.num_labels}')
-        """
         
         # Load model, tokenizer and loss function
         self.model_name = args.model
@@ -76,7 +43,6 @@ class LitModel(pl.LightningModule):
             self.loss = CrossEntropyLoss()
 
         else:
-
             raise NotImplementedError
 
         # Define other hyperparameters
@@ -92,21 +58,8 @@ class LitModel(pl.LightningModule):
         self.prev_num_labels = 0
 
     def configure_optimizers(self):
+
         # Define optimizer and scheduler
-        """
-        if self.deepspeed:
-            optimizer = DeepSpeedCPUAdam(self.model.parameters(), lr=self.lr, eps=self.opt_eps, weight_decay=self.opt_wd)
-        else:
-            optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.opt_eps, weight_decay=self.opt_wd)
-        if self.scheduler_off:
-            return [optimizer]
-        else:
-            scheduler = {
-                "scheduler": transformers.get_cosine_schedule_with_warmup(optimizer=optimizer, num_warmup_steps=self.warmup_steps, num_training_steps=self.max_steps),
-                "interval": "step"
-            }
-            return [optimizer], [scheduler]
-        """
         optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.opt_eps, weight_decay=self.opt_wd)
         if self.scheduler_off:
             return [optimizer]
@@ -118,39 +71,61 @@ class LitModel(pl.LightningModule):
             return [optimizer], [scheduler]
 
     
+    def okvqa_accuracy_score(self, y_true, y_pred):
+        total_acc = 0
+        for out in range(len(y_true)):
+            candidates = [y_true[i] for i in range(len(y_true)) if i != out]
+            acc = sum(1 for candidate in candidates if candidate == y_pred)
+            total_acc += min(acc / 3, 1)
+        return total_acc / len(y_true)
+
+
+    def compute_accuracy_score(self, y_true, y_pred):
+        if self.dataset == "mc1":
+            correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(y_pred, list(y_true))])
+            return correct_count / self.batch_size
+
+        elif self.dataset == "mc2":
+            0 #TODO
+        else:
+            total_acc = 0
+            for true_targets, pred in zip(y_true, y_pred):
+                acc = self.okvqa_accuracy_score(true_targets, pred.lstrip())
+                total_acc += acc
+            return total_acc / len(y_pred)
+    
 
     def step(self, batch, split):
         
-        if self.dataset == "mc":
+        images, inputs, targets, all_targets = batch
 
-            images, inputs, correct_choices = batch
+        # Images to device
+        patch_images = images.to(self.device)
 
-            # Images to device
-            patch_images = images.to(self.device)
-            
-            # Get input ids
-            input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
+        # Get input ids
+        input_ids = self.tokenizer(inputs, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
+
+        if "mc" in self.dataset:
 
             # Get decoder input ids ([bos] * batch_size)
             decoder_input_ids = (torch.ones((self.batch_size, 1),  dtype=torch.long) * self.tokenizer.bos_token_id).to(self.device)
-            decoder_input_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
+            decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
 
             # Get output logits
             outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
             logits = outputs["logits"] 
 
-            predicted_token_ids = torch.argmax(logits, dim=-1)  # [batch_size, seq_len]
+            #predicted_token_ids = torch.argmax(logits, dim=-1)  # [batch_size, seq_len]
 
             # Decodificar los tokens a texto
-            predicted_text = self.tokenizer.batch_decode(predicted_token_ids, skip_special_tokens=True)
+            #predicted_text = self.tokenizer.batch_decode(predicted_token_ids, skip_special_tokens=True)
 
             # Mostrar las predicciones
             #for i, text in enumerate(predicted_text):
             #    print(f"Sample {i}: {text}")
 
             #Get label ids
-            label_ids = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
-            labels = self.tokenizer(correct_choices, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
+            label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
             """
             # Add padding to logits:
             batch_size, seq_len, vocab_size = logits.shape
@@ -173,25 +148,13 @@ class LitModel(pl.LightningModule):
             loss = self.loss(logits, labels)
 
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
-            pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
-
+            y_pred = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
+            y_true = list(targets)
             #print(f'pred: {pred_text} \ncorrect: {correct_choices}')
             #print('-------------------------------------------------\n')
 
-            #Compute accuracy
-            correct_count = sum([gen.strip().lower() == correct.strip().lower() for gen, correct in zip(pred_text, list(correct_choices))])
-            accuracy = correct_count / self.batch_size
-
                  
         else:
-
-            images, questions, all_targets, targets = batch
-
-            # Images to device
-            patch_images = images.to(self.device)
-            
-            # Get input ids
-            input_ids = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").input_ids.to(self.device)
             
             # Get decoder_input_ids
             decoder_input_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt", add_special_tokens=True).input_ids[:, :-1].to(self.device)
@@ -205,12 +168,12 @@ class LitModel(pl.LightningModule):
               
             # Generate output (to compute accuracy)
             gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
-            pred_text = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
-            
+            y_pred = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
+            y_true = list(zip(*all_targets))
             print(f'logits: {outputs["logits"].shape} \nlabels: {label_ids.shape}\n')
 
-            # Compute Accuracy
-            accuracy = compute_accuracy_score(list(zip(*all_targets)), pred_text)
+        # Compute Accuracy
+        accuracy = self.compute_accuracy_score(y_true, y_pred)
         
         # Save loss
         self.log(f'{split}_loss', loss, on_epoch=True, prog_bar=(split=="train"), logger=True, batch_size=self.batch_size)
@@ -245,6 +208,7 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
         self.dataset = dataset
         self.transform = transform
         self.all_answers = None
+        self.mc_map = {0:"a", 1:"b", 2:"c", 3:"d", 4:"e", 5:"d"}
 
         # Load annotations
         self.ann_path = self._get_annotation_path()
@@ -253,7 +217,7 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
 
     def _get_annotation_path(self):
-        if self.dataset == "mc":
+        if "mc" in self.dataset:
             ann_file = f'annotations_{self.split}_mc.json'
         elif self.dataset == "synonyms" and self.split == 'train':
             ann_file = f'annotations_{self.split}_llama3.1:8b.json'
@@ -284,8 +248,12 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
 
     def create_mc_input(self, question, choices):
-        str_choices = " \t ".join(choices)
-        return f'{question} choose from: {str_choices}\n'
+        if self.dataset == "mc1":
+            str_choices = " \t ".join(choices)
+            return f'{question} choose from: {str_choices}\n'
+        else:
+            str_choices = f"a) {choices[0]} \nb) {choices[1]} \nc) {choices[2]} \nd) {choices[3]} \ne) {choices[4]}"
+            return f'{question} choose a, b, c, d or e:\n{str_choices}\n'
 
 
     def _load_image(self, image_id):
@@ -302,17 +270,21 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
         image = self._load_image(annotation["image_id"])
         question = annotation["question"]
 
-        if self.dataset == "mc":
+        if "mc" in self.dataset:
             answer_choices = annotation["choices"]
-            correct_choice = annotation["correct_choice"]
-            return image, self.create_mc_input(question, answer_choices), correct_choice
+            correct_index = annotation["correct_choice_idx"]
+            if "1" in self.dataset: 
+                correct_choice = annotation["correct_choice"]
+            else: 
+                correct_choice = [self.mc_map[idx] for idx in correct_index]
+            return image, self.create_mc_input(question, answer_choices), correct_choice, 0
 
         answers = [str(ans["answer"]) for ans in annotation["answers"]]
         if self.split == 'train' and self.dataset == "random":
             random_answers = [self.choose_random_answer()]
-            return image, question, random_answers, self.choose_answer(random_answers)
+            return image, question, self.choose_answer(random_answers), random_answers
 
-        return image, question, answers, self.choose_answer(answers)
+        return image, question, self.choose_answer(answers),  answers
 
 
     def __len__(self) -> int:
@@ -430,7 +402,7 @@ def parse_args():
         "--max_steps", type=int, default=88000, help="Steps to be done during training."
     )
     parser.add_argument(
-        "--dataset", type=str, default="original", choices=["original", "random", "synonyms", "mc"],
+        "--dataset", type=str, default="original", choices=["original", "random", "synonyms", "mc1", "mc2"],
         help="Select dataset to be trained on."
     )
     parser.add_argument(
