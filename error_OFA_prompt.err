@@ -1,11 +1,5 @@
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
-  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:333: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
-  transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
-  warnings.warn(
 /gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:333: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
   transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
@@ -14,28 +8,10 @@ GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
 HPU available: False, using: 0 HPUs
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-Missing logger folder: logs/ofa_base_okvqa_mc2
-Missing logger folder: logs/ofa_base_okvqa_mc1
+Missing logger folder: logs/ofa_base_okvqa_mc2_syn
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ exists and is not empty.
   rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ exists and is not empty.
-  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [3]
-
-  | Name  | Type             | Params
--------------------------------------------
-0 | model | OFAModel         | 182 M 
-1 | loss  | CrossEntropyLoss | 0     
--------------------------------------------
-182 M     Trainable params
-0         Non-trainable params
-182 M     Total params
-728.954   Total estimated model params size (MB)
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
 
   | Name  | Type             | Params
 -------------------------------------------
@@ -47,16 +23,9 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 182 M     Total params
 728.954   Total estimated model params size (MB)
 SLURM auto-requeueing enabled. Setting signal handlers.
-SLURM auto-requeueing enabled. Setting signal handlers.
-Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
 `Trainer.fit` stopped: `max_steps=20000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc1-epoch=18-val_accuracy=0.84.ckpt
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc1-epoch=18-val_accuracy=0.84.ckpt
-SLURM auto-requeueing enabled. Setting signal handlers.
-`Trainer.fit` stopped: `max_steps=20000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc2-epoch=12-val_accuracy=0.83.ckpt
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [3]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc2-epoch=12-val_accuracy=0.83.ckpt
+Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc2_syn-epoch=13-val_accuracy=0.92.ckpt
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
+Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc2_syn-epoch=13-val_accuracy=0.92.ckpt
 SLURM auto-requeueing enabled. Setting signal handlers.
