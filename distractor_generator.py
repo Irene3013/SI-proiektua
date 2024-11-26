@@ -14,48 +14,8 @@ from collections import Counter
 import random
 
 
-def create_prompt(question, correct_answer):
-    return [
-        {"role": "system", "content": "You are an assistant that generates plausible but incorrect distractors for a multiple-choice question."},
-        {"role": "user", "content": f"Question: {question}\n"
-                                    f"Correct Answer: {correct_answer}\n"
-                                    "Generate four plausible incorrect answers (distractors) that could be used in a multiple-choice question. "
-                                    "Make sure the distractors are relevant to the question and similar in length or complexity to the correct answer. "
-                                    "The distractors should not be the same as the correct answer. "
-                                    "Do not include any additional text or explanation, just provide the distractors as a list of four options."},
-    ]
-
-
-def choose_answer(answers):
-        counts = Counter(answers)
-        for threshold in [3, 2]: 
-            candidates = [ans for ans, count in counts.items() if count >= threshold]
-            if candidates:
-                return random.choice(candidates)
-        return random.choice(answers)
-
-
-def get_batch_prompts(annotations):
-    batch_prompts = []
-    for ann in annotations:
-        question = ann["question"]
-        answers = [str(ans["answer"]) for ans in ann["answers"]]
-        correct_answer = choose_answer(answers)
-        prompt = create_prompt(question, correct_answer)
-        batch_prompts.append(prompt)
-    return batch_prompts
-
-
-def replace_info(data, results):
-    data_ = copy.deepcopy(data)
-    for idx, ann in enumerate(data["annotations"]):
-        for answer_id in range(len(ann["answers"])):
-            result = results.pop(0)
-            data_["annotations"][idx]["answers"][answer_id]["answer"] = result
-    return data_
-
 class ComputeResults:
-    def __init__(self, token=None):
+    def __init__(self, args):
         """
         Initializes the class with the model type and the method you want to use (API or pipeline).
 
@@ -63,12 +23,15 @@ class ComputeResults:
         :param use_api: If True, uses the Ollama API; if False, uses the transformers pipeline.
         :param token: Hugging Face token (only required if using the llama model).
         """
-        self.token = token
+        self.token = args.token
+        self.output_dir = args.output_dir
         self.pipeline = self.load_pipeline()
         self.lemmatizer = WordNetLemmatizer()
+        self.batch_prompts = None
 
-        nltk.download('punkt', download_dir='/gaueko0/users/ietxarri010/nltk_data')
+        nltk.download('punkt', download_dir=self.output_dir)
         nltk.download('wordnet')
+        nltk.download('punkt_tab')
 	    
 
     def load_pipeline(self):
@@ -93,26 +56,57 @@ class ComputeResults:
             pad_token_id=50256,
         )
 
+    def get_batch_prompts(self, annotations):
+        batch_prompts = []
+        for ann in annotations:
+            question = ann["question"]
+            answers = [str(ans["answer"]) for ans in ann["answers"]]
+            correct_answer = self.choose_answer(answers)
+            prompt = self.create_prompt(question, correct_answer)
+            batch_prompts.append(prompt)
+        return batch_prompts
 
-    def generate(self, batch_prompts, batch_size=32):
+
+    def create_prompt(self, question, correct_answer):
+        return [
+            {"role": "system", "content": "You are an assistant that generates plausible but incorrect distractors for a multiple-choice question."},
+            {"role": "user", "content": f"Question: {question}\n"
+                                        f"Correct Answer: {correct_answer}\n"
+                                        "Generate four plausible incorrect answers (distractors) that could be used in a multiple-choice question. "
+                                        "Make sure the distractors are relevant to the question and similar in length or complexity to the correct answer. "
+                                        "The distractors should be relevant to the question but clearly not the correct answer. "
+                                        "The distractors should not be synonymous or too closely related to the correct answer"
+                                        "Do not include any additional text or explanation, just provide the distractors as a list of four options."},
+        ]
+
+
+    def choose_answer(self, answers):
+            counts = Counter(answers)
+            for threshold in [3, 2]: 
+                candidates = [ans for ans, count in counts.items() if count >= threshold]
+                if candidates:
+                    return random.choice(candidates)
+            
+            return random.choice(answers)
+
+    def generate(self, annotations, batch_size=32):
         """
         Main method for result generation. Depending on the initial configuration uses the API or the pipeline.
         """
         results = []
-
-        for i in range(0, len(batch_prompts), batch_size):
-            batch = batch_prompts[i:i+batch_size]
-
-            outputs = self.pipeline(batch, max_new_tokens=10, truncation=True)
-
+        self.batch_prompts = self.get_batch_prompts(annotations)
+        for i in range(0, len(self.batch_prompts), batch_size):
+            batch = self.batch_prompts[i:i+batch_size]
+            outputs = self.pipeline(batch, max_new_tokens=500, truncation=True)
             for output in outputs:
-                print(output)
                 generated_text = output[0]['generated_text']
                 result, answer = self.get_result(generated_text)
-                processed_result = self.result_processing(result, answer)
+                processed_result = self.result_processing(result)
+                processed_result.append(answer)
                 results.append(processed_result)
         return results
     
+
     def get_result(self, generated_text):
         """
         Processes the generated text to get the final result and the original answer.
@@ -121,13 +115,10 @@ class ComputeResults:
         return generated_text[-1]['content'], user_text.split("Answer: ")[1].split("\n")[0]
 
     
-    def result_processing(self, result, answer, word_limit=8):
-        """
-        Discards the longest results and replaces them with the orginal answer.
-        """
-        if len(result.split()) >= word_limit:
-            return self.normalize_answer(answer)
-        return self.normalize_answer(result) 
+    def result_processing(self, result, word_limit=8):
+        lines = result.splitlines()
+        options = [line.split('. ', 1)[1].strip() for line in lines if '. ' in line]
+        return [self.normalize_answer(option) for option in options]
 
 
     def normalize_answer(self, answer):
@@ -141,10 +132,72 @@ class ComputeResults:
         normalized_answer = ' '.join(lemmatized)
         return normalized_answer
 
+
+
+class Convert2MC:
+    def __init__(self):
+        self.json_info = None
+        
+
+    def get_json_info (self, split):
+        return { "license": {
+            "url": "http://creativecommons.org/licenses/by/4.0/",
+            "name": "Creative Commons Attribution 4.0 International License"
+          },
+          "data_subtype": f"{split}2014",
+          "question_types": {
+            "eight": "Plants and Animals",
+            "nine": "Science and Technology",
+            "four": "Sports and Recreation",
+            "six": "Geography, History, Language and Culture",
+            "two": "Brands, Companies and Products",
+            "other": "Other",
+            "one": "Vehicles and Transportation",
+            "five": "Cooking and Food",
+            "ten": "Weather and Climate",
+            "seven": "People and Everyday life",
+            "three": "Objects, Material and Clothing"
+          },
+          "annotations": [],
+          "info": {
+            "year": 2019,
+            "version": "1.0",
+            "description": "This is v1.0 of the OK-VQA dataset."
+          },
+          "data_type": "mscoco" }
+
+
+    def add_annotation (self, choices, annotation):
+        correct_choice = choices[-1]
+        random.shuffle(choices)    
+
+        new_annotation = {
+              "image_id": annotation ['image_id'],
+              "question_id": annotation ['question_id'],
+              "question_type": annotation ['question_type'],
+              "question": annotation ['question'],
+              "answer_type": annotation ['answer_type'],
+              "choices": choices,
+              "correct_choice_idx": choices.index(correct_choice),
+              "correct_choice": correct_choice,
+              "confidence": annotation ['confidence']
+        }
+        self.json_info["annotations"].append(new_annotation)
+
+
+    def convert_MC (self, annotations, choices_list, split):
+        self.json_info = self.get_json_info(split)
+        for choices, annotation in zip(choices_list, annotations):
+            self.add_annotation (choices, annotation) 
+        return self.json_info
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--root", type=str, default="/gaueko0/users/ietxarri010/GrAL_Irene/okvqa", help="Path to the OkVqa prediction files."
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default="'/gaueko0/users/ietxarri010/nltk_data'", help="Path to the OkVqa prediction files."
     )
     parser.add_argument(
         "--token", type=str, default=None, help="HuggingFace login token"
@@ -160,64 +213,55 @@ def main():
     args = parse_args()
     print(f'Args parsed.')
     
+    # Create class instances
+    compute = ComputeResults(args)
+    convert = Convert2MC()
 
     # Load json files
     print("\nLoading json files...")
     with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
       train = json.load(f)
-      train = train[:2]
+    with open(os.path.join(args.root, 'train', f'annotations_train_llama3.1_8b.json'), "r") as f: 
+      train_syn = json.load(f)
     with open(os.path.join(args.root, 'val', f'annotations_val.json'), "r") as f: 
       val = json.load(f)
-      val = val[:2]
+    with open(os.path.join(args.root, 'test', f'annotations_test.json'), "r") as f: 
+      test = json.load(f)
     print(f'Files loaded.')
 
-    # Get prompts
-    print("\nGetting batch promps...")
-    train_batch_prompts = get_batch_prompts(train["annotations"])
-    val_batch_prompts = get_batch_prompts(val["annotations"])
-    print(f'Batch promps computed. \n')
+    # Compute train  
+    results = compute.generate(train["annotations"])
+    data = convert.convert_MC(train["annotations"], results, 'train')
+    path = os.path.join(args.root, 'train', f'annotations_train_mc_distractors.json')
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=4)
+    print('Train saved!')
 
-    # Create class instance
-    compute = ComputeResults(
-        token=args.token 
-    )
+    # Compute train_syn  
+    results = compute.generate(train_syn["annotations"])
+    data = convert.convert_MC(train_syn["annotations"], results, 'train')
+    path = os.path.join(args.root, 'train', f'annotations_train_mc_distractors_llama3.1_8b.json')
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=4)
+    print('Train syn saved!')
 
-    # Compute train results 
-    print("\nGenerating train answers...")
-    time1 = time.time()
-    train_results = compute.generate(train_batch_prompts)
-    time2 = time.time()
-    print(f'Train answers generated. Time: {(time2-time1)//3600}h {((time2-time1)%3600)//60}min {int((time2-time1)%60)}s')
+    # Compute val  
+    results = compute.generate(val["annotations"])
+    data = convert.convert_MC(val["annotations"], results, 'val')
+    path = os.path.join(args.root, 'val', f'annotations_val_mc_distractors.json')
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=4)
+    print('Val saved!')
 
-    # Compute validation results 
-    print("\nGenerating validation answers...")
-    val_results = compute.generate(val_batch_prompts)
-    time3 = time.time()
-    print(f'Validation answers generated. Time: {(time3-time2)//3600}h {((time3-time2)%3600)//60}min {int((time3-time2)%60)}s')
+    # Compute test  
+    results = compute.generate(test["annotations"])
+    data = convert.convert_MC(test["annotations"], results, 'test')
+    path = os.path.join(args.root, 'test', f'annotations_test_mc_distractors.json')
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=4)
+    print('Test saved!')
 
-    # Replace annotations with new answers
-    print("\nReplacing annotations answers...")
-    train_ = replace_info(train, train_results)
-    val_ = replace_info(val, val_results)
-    print(f"Answers replaced.")
-
-    print(f"\nSaving answers to json files...")
-
-    # Save train annotations to json file
-    model_name = 'llama3.1_8b'
-    train_path = os.path.join(args.root, 'train', f'annotations_train_{model_name}.json')
-    os.makedirs(os.path.dirname(train_path), exist_ok=True)
-    with open(train_path, 'w') as json_file:
-        json.dump(train_, json_file, indent=4)
-    print(f"Train set saved!")
-
-    # Save validation annotations to json file
-    val_path = os.path.join(args.root, 'val', f'annotations_val_{model_name}.json')
-    os.makedirs(os.path.dirname(val_path), exist_ok=True)
-    with open(val_path, 'w') as json_file:
-        json.dump(val_, json_file, indent=4)
-    print("Val set saved!")
-    
+    return 0
 
 if __name__ == "__main__":
     main()
