@@ -5,7 +5,7 @@ import json
 import os
 import copy
 import time
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer
 from huggingface_hub import login
 import re
 import nltk

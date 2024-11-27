@@ -231,7 +231,7 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
     def _get_annotation_path(self):
         if "mc" in self.dataset:
-              ann_file = f'annotations_{self.split}_mc{self.synonyms}.json'
+              ann_file = f'annotations_{self.split}_mc_distractors{self.synonyms}.json'
         else:
             ann_file = f'annotations_{self.split}{self.synonyms}.json'
         return os.path.join(self.root, self.split, ann_file)
@@ -283,10 +283,12 @@ class OkVqaDataset(torchvision.datasets.vision.VisionDataset):
 
         if "mc" in self.dataset:
             answer_choices = annotation["choices"]
+            if self.split == 'train':
+                random.shuffle(answer_choices)
             if self.mc_type == 1: 
                 correct_choice = annotation["correct_choice"]
             else: 
-                correct_choice = annotation["correct_choice_idx"]
+                correct_choice = answer_choices.index(annotation["correct_choice"])
             return image, self.create_mc_input(question, answer_choices), correct_choice, 0
 
         answers = [str(ans["answer"]) for ans in annotation["answers"]]
