@@ -1,31 +1,13 @@
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
-  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:333: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
-  transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
+/gaueko0/users/ietxarri010/env/nire_env/lib/python3.9/site-packages/transformers/utils/hub.py:128: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
   warnings.warn(
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-Missing logger folder: logs/ofa_base_okvqa_mc2_syn
-/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ exists and is not empty.
-  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-
-  | Name  | Type             | Params
--------------------------------------------
-0 | model | OFAModel         | 182 M 
-1 | loss  | CrossEntropyLoss | 0     
--------------------------------------------
-182 M     Trainable params
-0         Non-trainable params
-182 M     Total params
-728.954   Total estimated model params size (MB)
-SLURM auto-requeueing enabled. Setting signal handlers.
-Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
-`Trainer.fit` stopped: `max_steps=20000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc2_syn-epoch=13-val_accuracy=0.92.ckpt
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [2]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc2_syn-epoch=13-val_accuracy=0.92.ckpt
-SLURM auto-requeueing enabled. Setting signal handlers.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [02:01<06:03, 121.03s/it]Loading checkpoint shards:  50%|█████     | 2/4 [04:09<04:11, 125.66s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [06:14<02:05, 125.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [06:44<00:00, 87.52s/it] Loading checkpoint shards: 100%|██████████| 4/4 [06:44<00:00, 101.10s/it]
+[nltk_data] Downloading package punkt to
+[nltk_data]     '/gaueko0/users/ietxarri010/nltk_data'...
+[nltk_data]   Unzipping tokenizers/punkt.zip.
+[nltk_data] Downloading package wordnet to
+[nltk_data]     /gaueko0/users/ietxarri010/nltk_data...
+[nltk_data]   Package wordnet is already up-to-date!
+[nltk_data] Downloading package punkt_tab to
+[nltk_data]     /gaueko0/users/ietxarri010/nltk_data...
+[nltk_data]   Package punkt_tab is already up-to-date!
+You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset
