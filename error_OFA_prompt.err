@@ -8,10 +8,10 @@ GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
 HPU available: False, using: 0 HPUs
-Missing logger folder: logs/ofa_base_okvqa_mc2
+Missing logger folder: logs/ofa_base_okvqa_mc2_syn
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ exists and is not empty.
   rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 
   | Name  | Type             | Params
 -------------------------------------------
@@ -77,8 +77,8 @@ IndexError: list index out of range
 
 srun: error: localhost: task 0: Exited with exit code 1
 `Trainer.fit` stopped: `max_steps=20000` reached.
-Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc1-epoch=16-val_accuracy=0.74.ckpt
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc1-epoch=16-val_accuracy=0.74.ckpt
+Restoring states from the checkpoint path at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc1_syn-epoch=15-val_accuracy=0.61.ckpt
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
+Loaded model weights from the checkpoint at /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ofa_base_okvqa_mc1_syn-epoch=15-val_accuracy=0.61.ckpt
 SLURM auto-requeueing enabled. Setting signal handlers.
-/var/spool/slurm/d/job14514/slurm_script: line 19: g: command not found
+/var/spool/slurm/d/job14542/slurm_script: line 19: g: command not found
