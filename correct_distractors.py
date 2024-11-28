@@ -12,7 +12,6 @@ import nltk
 from nltk.stem import WordNetLemmatizer
 from collections import Counter
 import random
-from progressbar import ProgressBar
 
 class ComputeResults:
     def __init__(self, args):
@@ -157,14 +156,9 @@ def main():
 
 
     def correct_choices (annotations, wrongs):
-        bar = ProgressBar(max_value= 1 + len(wrongs))
-        b = 0
         for i in wrongs:
             ann = annotations[i]
             ann['choices'] = compute.generate(ann)
-            bar.update(b)
-            b+=1
-        bar.finish()
 
 
     def count_wrongs (annotations):
