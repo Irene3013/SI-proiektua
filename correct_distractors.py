@@ -59,19 +59,27 @@ class ComputeResults:
     def create_prompt(self, question, correct_answer):
         return [
             {"role": "system", "content": "You are an assistant that generates plausible but incorrect distractors for a multiple-choice question."},
-            {"role": "user", "content": f"Question: {question}\n"
-                                        f"Correct Answer: {correct_answer}\n"
-                                        "Generate four plausible incorrect answers (distractors) that could be used in a multiple-choice question. "
-                                        "Make sure the distractors are relevant to the question and similar in length or complexity to the correct answer. "
-                                        "The distractors should be relevant to the question but clearly not the correct answer. "
-                                        "The distractors should not be synonymous or too closely related to the correct answer"
-                                        "Do not include any additional text or explanation, just provide the distractors as a list of four options."
-                                        "The output should consist of only four distractors in this format:\n"
-                                        "1. Distractor 1\n"
-                                        "2. Distractor 2\n"
-                                        "3. Distractor 3\n"
-                                        "4. Distractor 4"},
+            {"role": "user", "content": (
+                f"Question: {question}\n"
+                f"Correct Answer: {correct_answer}\n"
+                "Generate four plausible but incorrect answers (distractors) for the question above. "
+                "The distractors must:\n"
+                "- Be relevant to the question.\n"
+                "- Be short and simple, similar in length to the correct answer.\n"
+                "- Clearly not be the correct answer.\n"
+                "- Not be synonymous with or too closely related to the correct answer.\n"
+                "The output should:\n"
+                "- Contain exactly four distractors.\n"
+                "- Be concise, with no additional explanation or context.\n"
+                "- Be formatted as follows:\n"
+                "1. Distractor 1\n"
+                "2. Distractor 2\n"
+                "3. Distractor 3\n"
+                "4. Distractor 4\n"
+                "Do not include any extra text or commentary, just the four distractors."
+            )},
         ]
+
 
     def generate(self, annotation):
         """
@@ -102,7 +110,7 @@ class ComputeResults:
 
     def normalize_answer(self, answer):
         answer = answer.lower()
-        answer = re.sub(r'[^a-zA-Z\s]', '', answer)
+        answer = re.sub(r'[^a-zA-Z0-9\s]', '', answer)
 
         # Tokenize and lematize
         words = nltk.word_tokenize(answer)
@@ -137,26 +145,25 @@ def main():
 
     # Load json files
     print("\nLoading json files...")
-    with open(os.path.join(args.root, 'train', f'annotations_train.json'), "r") as f: 
+    with open(os.path.join(args.root, 'train', f'annotations_train_mc_distractors.json'), "r") as f: 
       train = json.load(f)
-    with open(os.path.join(args.root, 'train', f'annotations_train_llama3.1_8b.json'), "r") as f: 
+    with open(os.path.join(args.root, 'train', f'annotations_train_mc_distractors_llama3.1_8b.json'), "r") as f: 
       train_syn = json.load(f)
-    with open(os.path.join(args.root, 'val', f'annotations_val.json'), "r") as f: 
+    with open(os.path.join(args.root, 'val', f'annotations_val_mc_distractors.json'), "r") as f: 
       val = json.load(f)
-    with open(os.path.join(args.root, 'test', f'annotations_test.json'), "r") as f: 
+    with open(os.path.join(args.root, 'test', f'annotations_test_mc_distractors.json'), "r") as f: 
       test = json.load(f)
     print(f'Files loaded.')
 
 
     def correct_choices (annotations, wrongs):
         bar = ProgressBar(max_value= 1 + len(wrongs))
-        i = 0
+        b = 0
         for i in wrongs:
             ann = annotations[i]
-            print(ann['choices'])
             ann['choices'] = compute.generate(ann)
-            print(ann['choices'])
-            bar.update(i)
+            bar.update(b)
+            b+=1
         bar.finish()
 
 
@@ -178,21 +185,53 @@ def main():
             update = size != len(incorrect)
             size = len(incorrect)
             print(f'num wrongs: {size}\n')
+        if size >0:
+            print(f'UNCHANGED! wrongs:')
+            '\n'.join(incorrect)
+            print(incorrect)
             
+
+    def shuffle_annotations(annotations):
+        for ann in annotations:
+            random.shuffle(ann['choices'])
+            ann['correct_choice_idx'] = ann['choices'].index(ann["correct_choice"])
 
 
     check_annotations(train['annotations'])
+    print('shuffling...')
+    shuffle_annotations(train['annotations'])
     print('train finished!')
     print('-------------------\n')
 
     check_annotations(train_syn['annotations'])
+    print('shuffling...')
+    shuffle_annotations(train_syn['annotations'])
     print('train_syn finished!')
     print('-------------------\n')
 
     check_annotations(val['annotations'])
+    print('shuffling...')
+    shuffle_annotations(val['annotations'])
     print('val finished!')
     print('-------------------\n')
 
     check_annotations(test['annotations'])
+    print('shuffling...')
+    shuffle_annotations(test['annotations'])
     print('test finished!')
     print('-------------------\n')
+
+    # Update json files
+    print("\nUpdating json files...")
+    with open(os.path.join(args.root, 'train', f'annotations_train_mc_distractors.json'), "w") as f: 
+      json.dump(train, f, indent=4)
+    with open(os.path.join(args.root, 'train', f'annotations_train_mc_distractors_llama3.1_8b.json'), "w") as f: 
+      json.dump(train_syn, f, indent=4)
+    with open(os.path.join(args.root, 'val', f'annotations_val_mc_distractors.json'), "w") as f: 
+      json.dump(val, f, indent=4)
+    with open(os.path.join(args.root, 'test', f'annotations_test_mc_distractors.json'), "w") as f: 
+      json.dump(test, f, indent=4)
+    print(f'Files updated.')
+
+if __name__ == "__main__":
+    main()

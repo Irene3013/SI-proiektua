@@ -14,5 +14,5 @@ source /gaueko0/users/ietxarri010/env/nire_env/bin/activate
 #export TRANSFORMERS_CACHE="/gaueko0/transformers_cache/"
 #srun huggingface-cli login --token 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 --add-to-git-credential
 #srun python answer_generator.py --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa --model_name llama3.1:70b --token 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
-srun python distractor_generator.py --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa  --token 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
+srun python correct_distractors.py --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa  --token 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
 
