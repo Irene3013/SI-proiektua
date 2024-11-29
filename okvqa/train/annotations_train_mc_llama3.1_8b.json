@@ -14649,10 +14649,10 @@
                 "vintage",
                 "youngster",
                 "yard",
-                ""
+                "cross"
             ],
             "correct_choice_idx": 4,
-            "correct_choice": "",
+            "correct_choice": "cross",
             "confidence": 2
         },
         {
@@ -23318,11 +23318,11 @@
                 "practicality",
                 "commuter",
                 "tower",
-                "",
+                "3.2",
                 "banner"
             ],
             "correct_choice_idx": 3,
-            "correct_choice": "",
+            "correct_choice": "3.2",
             "confidence": 3
         },
         {
@@ -23693,10 +23693,10 @@
                 "airplane",
                 "developer",
                 "multitasking",
-                ""
+                "1.5"
             ],
             "correct_choice_idx": 4,
-            "correct_choice": "",
+            "correct_choice": "1.5",
             "confidence": 2
         },
         {
@@ -33889,14 +33889,14 @@
             "question": "How much does this laptop typically cost?",
             "answer_type": "other",
             "choices": [
-                "",
+                "$1200",
                 "motel",
                 "sesame street",
                 "parent",
                 "formal suit"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "$1200",
             "confidence": 1
         },
         {
@@ -43529,13 +43529,13 @@
             "answer_type": "other",
             "choices": [
                 "egg florentine",
-                "early th century",
+                "early 19th century",
                 "airfield",
                 "fence",
                 "artist"
             ],
             "correct_choice_idx": 1,
-            "correct_choice": "early th century",
+            "correct_choice": "early 19th century",
             "confidence": 2
         },
         {
@@ -61837,14 +61837,14 @@
             "question": "How long does it normally take to get a business like this started?",
             "answer_type": "other",
             "choices": [
-                "",
+                "2 years",
                 "feline",
                 "munching",
                 "maritime",
                 "handbag"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "2 years",
             "confidence": 2
         },
         {
@@ -72056,12 +72056,12 @@
             "choices": [
                 "porch",
                 "nfl",
-                "",
+                "50",
                 "fowl",
                 "indicate"
             ],
             "correct_choice_idx": 2,
-            "correct_choice": "",
+            "correct_choice": "50",
             "confidence": 1
         },
         {
@@ -83771,10 +83771,10 @@
                 "top hat",
                 "roast it",
                 "scribble",
-                ""
+                "15"
             ],
             "correct_choice_idx": 4,
-            "correct_choice": "",
+            "correct_choice": "15",
             "confidence": 1
         },
         {
@@ -93219,14 +93219,14 @@
             "question": "How much horsepower does this motorcycle make?",
             "answer_type": "other",
             "choices": [
-                "",
+                "150",
                 "refrigerator",
                 "mousse",
                 "fully cooked",
                 "stabilizer"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "150",
             "confidence": 2
         },
         {
@@ -94545,14 +94545,14 @@
             "question": "What does this donut cost?",
             "answer_type": "other",
             "choices": [
-                "",
+                "dollar",
                 "stool",
                 "frankfurter",
                 "menagerie",
                 "united kingdom"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "dollar",
             "confidence": 2
         },
         {

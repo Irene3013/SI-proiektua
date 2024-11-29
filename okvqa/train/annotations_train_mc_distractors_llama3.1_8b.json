@@ -14647,12 +14647,12 @@
             "choices": [
                 "hexagon",
                 "circle",
-                "",
+                "cross",
                 "spiral",
                 "triangle"
             ],
             "correct_choice_idx": 2,
-            "correct_choice": "",
+            "correct_choice": "cross",
             "confidence": 2
         },
         {
@@ -23315,14 +23315,14 @@
             "question": "How much is a slice of pizza?",
             "answer_type": "other",
             "choices": [
-                "",
+                "3.2",
                 "350",
                 "a soft drink",
                 "a side salad",
                 "12 inch"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "3.2",
             "confidence": 3
         },
         {
@@ -23689,14 +23689,14 @@
             "question": "What is the cost of pineapples?",
             "answer_type": "other",
             "choices": [
-                "",
+                "1.5",
                 "5 each",
                 "free at farmer market",
                 "20 per bunch",
                 "3 for 10"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "1.5",
             "confidence": 2
         },
         {
@@ -33892,11 +33892,11 @@
                 "1200",
                 "350",
                 "2500",
-                "",
+                "$1200",
                 "800"
             ],
             "correct_choice_idx": 3,
-            "correct_choice": "",
+            "correct_choice": "$1200",
             "confidence": 1
         },
         {
@@ -43528,14 +43528,14 @@
             "question": "When were motorcycles invented?",
             "answer_type": "other",
             "choices": [
-                "",
+                "1885",
                 "1750",
                 "1850s",
                 "1925",
                 "1892"
             ],
             "correct_choice_idx": 0,
-            "correct_choice": "",
+            "correct_choice": "1885",
             "confidence": 2
         },
         {
@@ -61838,13 +61838,13 @@
             "answer_type": "other",
             "choices": [
                 "612 month",
-                "",
+                "2 years",
                 "a soon a the business plan is approved",
                 "13 year after hiring employee",
                 "within the first quarter of the fiscal year"
             ],
             "correct_choice_idx": 1,
-            "correct_choice": "",
+            "correct_choice": "2 years",
             "confidence": 2
         },
         {
@@ -72057,11 +72057,11 @@
                 "800",
                 "300 per week",
                 "1200 per month",
-                "50 per night",
-                ""
+                "60 per night",
+                "50"
             ],
             "correct_choice_idx": 4,
-            "correct_choice": "",
+            "correct_choice": "50",
             "confidence": 1
         },
         {
@@ -83769,12 +83769,12 @@
             "choices": [
                 "22 per hour",
                 "18 per hour",
-                "",
+                "15",
                 "38 per hour",
                 "45 per hour"
             ],
             "correct_choice_idx": 2,
-            "correct_choice": "",
+            "correct_choice": "15",
             "confidence": 1
         },
         {
@@ -93223,10 +93223,10 @@
                 "90",
                 "180",
                 "250",
-                ""
+                "150"
             ],
             "correct_choice_idx": 4,
-            "correct_choice": "",
+            "correct_choice": "150",
             "confidence": 2
         },
         {
@@ -94547,12 +94547,12 @@
             "choices": [
                 "2 for 5",
                 "free",
-                "",
+                "dollar",
                 "50 cent",
                 "350"
             ],
             "correct_choice_idx": 2,
-            "correct_choice": "",
+            "correct_choice": "dollar",
             "confidence": 2
         },
         {
