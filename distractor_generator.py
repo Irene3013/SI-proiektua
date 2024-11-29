@@ -70,13 +70,25 @@ class ComputeResults:
     def create_prompt(self, question, correct_answer):
         return [
             {"role": "system", "content": "You are an assistant that generates plausible but incorrect distractors for a multiple-choice question."},
-            {"role": "user", "content": f"Question: {question}\n"
-                                        f"Correct Answer: {correct_answer}\n"
-                                        "Generate four plausible incorrect answers (distractors) that could be used in a multiple-choice question. "
-                                        "Make sure the distractors are relevant to the question and similar in length or complexity to the correct answer. "
-                                        "The distractors should be relevant to the question but clearly not the correct answer. "
-                                        "The distractors should not be synonymous or too closely related to the correct answer"
-                                        "Do not include any additional text or explanation, just provide the distractors as a list of four options."},
+            {"role": "user", "content": (
+                f"Question: {question}\n"
+                f"Correct Answer: {correct_answer}\n"
+                "Generate four plausible but incorrect answers (distractors) for the question above. "
+                "The distractors must:\n"
+                "- Be relevant to the question.\n"
+                "- Be short and simple, similar in length to the correct answer.\n"
+                "- Clearly not be the correct answer.\n"
+                "- Not be synonymous with or too closely related to the correct answer.\n"
+                "The output should:\n"
+                "- Contain exactly four distractors.\n"
+                "- Be concise, with no additional explanation or context.\n"
+                "- Be formatted as follows:\n"
+                "1. Distractor 1\n"
+                "2. Distractor 2\n"
+                "3. Distractor 3\n"
+                "4. Distractor 4\n"
+                "Do not include any extra text or commentary, just the four distractors."
+            )},
         ]
 
 
@@ -123,7 +135,7 @@ class ComputeResults:
 
     def normalize_answer(self, answer):
         answer = answer.lower()
-        answer = re.sub(r'[^a-zA-Z\s]', '', answer)
+        answer = re.sub(r'[^a-zA-Z0-9\s]', '', answer)
 
         # Tokenize and lematize
         words = nltk.word_tokenize(answer)

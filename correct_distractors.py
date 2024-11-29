@@ -172,13 +172,11 @@ def main():
         incorrect = count_wrongs (annotations)
         size = len(incorrect)
         update = True
-        print(f'num wrongs: {size}\n')
         while size > 0 and update:
             correct_choices(annotations, incorrect)
             incorrect = count_wrongs (annotations)
             update = size != len(incorrect)
             size = len(incorrect)
-            print(f'num wrongs: {size}\n')
         if size >0:
             print(f'UNCHANGED! wrongs:')
             '\n'.join(incorrect)
