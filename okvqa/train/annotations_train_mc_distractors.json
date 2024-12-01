@@ -91540,7 +91540,8 @@
                 "magnum",
                 "40mm",
                 "9mm",
-                "shotgun"
+                "shotgun",
+                "rifle"
             ],
             "correct_choice_idx": 2,
             "correct_choice": "9mm",
