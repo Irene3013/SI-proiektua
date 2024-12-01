@@ -12,22 +12,22 @@ source /gscratch/users/asalaberria009/env/p39-cu115/bin/activate
 
 #export TRANSFORMERS_CACHE="/gaueko0/transformers_cache/"
 
-srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
-   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
-   --run_name ofa_base_okvqa_mc1 --train --evaluate --source vinvl --dataset mc1\
-   --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
+#srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
+#   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
+#   --run_name ofa_base_okvqa_mc1 --train --evaluate --source vinvl --dataset mc1\
+#   --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
 
-srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
-   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
-   --run_name ofa_base_okvqa_mc1_syn --train --evaluate --source vinvl --dataset mc1 --synonyms\
-   --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
+#srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
+#   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
+#   --run_name ofa_base_okvqa_mc1_syn --train --evaluate --source vinvl --dataset mc1 --synonyms\
+#   --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
 
 srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
    --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
    --run_name ofa_base_okvqa_mc2 --train --evaluate --source vinvl --dataset mc2 \
    --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
 
-srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
-   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
-   --run_name ofa_base_okvqa_mc2_syn --train --evaluate --source vinvl --dataset mc2 --synonyms\
-   --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
+#srun python mm_okvqa_finetuning.py --model "OFA-Sys/ofa-base" --target_model ofa --location_encoding none \
+#   --lr 2e-5 --batch_size 4 --max_steps 20000 --accumulate_grad_batches 2 \
+#   --run_name ofa_base_okvqa_mc2_syn --train --evaluate --source vinvl --dataset mc2 --synonyms\
+#   --root /gaueko0/users/ietxarri010/GrAL_Irene/okvqa
