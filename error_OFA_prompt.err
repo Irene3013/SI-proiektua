@@ -1,6 +1,6 @@
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:335: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
+/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:372: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
   transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
   warnings.warn(
@@ -10,7 +10,7 @@ IPU available: False, using: 0 IPUs
 HPU available: False, using: 0 HPUs
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory /gaueko0/users/ietxarri010/ofa_okvqa_finetuning/ exists and is not empty.
   rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [1]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 
   | Name  | Type             | Params
 -------------------------------------------
@@ -41,34 +41,62 @@ Traceback (most recent call last):
     self.advance(data_fetcher)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 218, in advance
     batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 178, in run
-    closure()
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 185, in run
+    self._optimizer_step(kwargs.get("batch_idx", 0), closure)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 261, in _optimizer_step
+    call._call_lightning_module_hook(
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 142, in _call_lightning_module_hook
+    output = fn(*args, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/core/module.py", line 1265, in optimizer_step
+    optimizer.step(closure=optimizer_closure)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/core/optimizer.py", line 158, in step
+    step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 224, in optimizer_step
+    return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/plugins/precision/precision_plugin.py", line 114, in optimizer_step
+    return optimizer.step(closure=closure, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/optim/lr_scheduler.py", line 65, in wrapper
+    return wrapped(*args, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/optim/optimizer.py", line 88, in wrapper
+    return func(*args, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/optim/adamw.py", line 100, in step
+    loss = closure()
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/plugins/precision/precision_plugin.py", line 101, in _wrap_closure
+    closure_result = closure()
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 140, in __call__
     self._result = self.closure(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 135, in closure
-    self._backward_fn(step_output.closure_loss)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 233, in backward_fn
-    call._call_strategy_hook(self.trainer, "backward", loss, optimizer)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 126, in closure
+    step_output = self._step_fn()
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 308, in _training_step
+    training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 288, in _call_strategy_hook
     output = fn(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 199, in backward
-    self.precision_plugin.backward(closure_loss, self.lightning_module, optimizer, *args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/plugins/precision/precision_plugin.py", line 67, in backward
-    model.backward(tensor, *args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/core/module.py", line 1054, in backward
-    loss.backward(*args, **kwargs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/_tensor.py", line 363, in backward
-    torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
-  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/autograd/__init__.py", line 173, in backward
-    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-RuntimeError: CUDA error: CUBLAS_STATUS_INTERNAL_ERROR when calling `cublasSgemm( handle, opa, opb, m, n, k, &alpha, a, lda, b, ldb, &beta, c, ldc)`
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 366, in training_step
+    return self.model.training_step(*args, **kwargs)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 230, in training_step
+    return self.step(batch, split="train")
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 207, in step
+    loss, accuracy = self.handle_mc_type_2(input_ids, patch_images, targets)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 127, in handle_mc_type_2
+    loss = self.compute_loss(logits_for_options, targets)
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 192, in compute_loss
+    return self.loss(logits.view(-1, logits.size(-1)), labels.view(-1))
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1110, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/nn/modules/loss.py", line 1163, in forward
+    return F.cross_entropy(input, target, weight=self.weight,
+  File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/nn/functional.py", line 2996, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index, label_smoothing)
+RuntimeError: CUDA error: device-side assert triggered
 
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 583, in <module>
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 620, in <module>
     main()
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 566, in main
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 603, in main
     trainer.fit(model, datamodule)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 520, in fit
     call._call_and_handle_interrupt(
@@ -93,6 +121,4 @@ Traceback (most recent call last):
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/lightning_fabric/utilities/apply_func.py", line 95, in batch_to
     data_output = data.to(device, **kwargs)
 RuntimeError: CUDA error: device-side assert triggered
-CUDA kernel errors might be asynchronously reported at some other API call,so the stacktrace below might be incorrect.
-For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
 srun: error: localhost: task 0: Exited with exit code 1
