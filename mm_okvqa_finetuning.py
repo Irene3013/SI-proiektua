@@ -134,19 +134,56 @@ class LitModel(pl.LightningModule):
 
     
     def handle_mc_type_1(self, input_ids, patch_images, targets):
+        # Procesamiento inicial
         label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
         
+        # Validación de etiquetas
+        assert (label_ids >= 0).all(), f"Found negative labels in `label_ids`: {label_ids}"
+        assert (label_ids < self.tokenizer.vocab_size).all(), (
+            f"Some labels exceed the vocabulary size ({self.tokenizer.vocab_size}): {label_ids}"
+        )
+
         seq_len = label_ids.size(1)
         decoder_input_ids = torch.ones((input_ids.size(0), seq_len), dtype=torch.long) * self.tokenizer.bos_token_id
         decoder_input_ids = decoder_input_ids.to(self.device)
 
-        outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
-        loss = self.compute_loss(outputs["logits"], label_ids)
+        # Validación de dimensiones
+        assert input_ids.dim() == 2, f"`input_ids` should have 2 dimensions, got {input_ids.shape}"
+        assert patch_images.dim() == 4, f"`patch_images` should have 4 dimensions, got {patch_images.shape}"
+        assert decoder_input_ids.size() == label_ids.size(), (
+            f"`decoder_input_ids` shape {decoder_input_ids.size()} does not match `label_ids` shape {label_ids.size()}"
+        )
 
-        gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False) #greedy
+        # Forward paso
+        outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
+        logits = outputs["logits"]
+
+        # Validación de logits
+        assert logits.size(0) == input_ids.size(0), (
+            f"Batch size mismatch: logits batch size {logits.size(0)} vs input_ids batch size {input_ids.size(0)}"
+        )
+        assert logits.size(-1) == self.tokenizer.vocab_size, (
+            f"Logits last dimension {logits.size(-1)} does not match vocabulary size {self.tokenizer.vocab_size}"
+        )
+
+        # Calcular pérdida
+        try:
+            loss = self.compute_loss(logits, label_ids)
+        except Exception as e:
+            print(f"Error in `compute_loss`: {e}")
+            print(f"Logits shape: {logits.shape}, Label IDs: {label_ids}")
+            raise
+
+        # Generación y evaluación
+        gen_outputs = self.model.generate(input_ids=input_ids, patch_images=patch_images, do_sample=False)  # greedy
+        assert gen_outputs is not None, "Model's `generate` method returned None"
+        assert len(gen_outputs) == input_ids.size(0), (
+            f"Mismatch in generated outputs: {len(gen_outputs)} vs batch size {input_ids.size(0)}"
+        )
+
         y_pred = self.tokenizer.batch_decode(gen_outputs, skip_special_tokens=True)
         y_true = list(targets)
-        accuracy = self.compute_accuracy_score(targets, y_pred)
+        accuracy = self.compute_accuracy_score(y_true, y_pred)
 
         return loss, accuracy
 
