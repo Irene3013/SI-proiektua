@@ -1,6 +1,6 @@
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/functional.py:568: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2228.)
   return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
-/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:372: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
+/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py:335: DeprecationWarning: BICUBIC is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.BICUBIC instead.
   transforms.Resize((resolution, resolution), interpolation=Image.BICUBIC),
 /gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torchvision/transforms/transforms.py:332: UserWarning: Argument interpolation should be of type InterpolationMode instead of int. Please, use InterpolationMode enum.
   warnings.warn(
@@ -23,7 +23,7 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 728.954   Total estimated model params size (MB)
 SLURM auto-requeueing enabled. Setting signal handlers.
 Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
-../aten/src/ATen/native/cuda/Loss.cu:257: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [1,0,0] Assertion `t >= 0 && t < n_classes` failed.
+../aten/src/ATen/native/cuda/Loss.cu:257: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [2,0,0] Assertion `t >= 0 && t < n_classes` failed.
 Traceback (most recent call last):
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 44, in _call_and_handle_interrupt
     return trainer_fn(*args, **kwargs)
@@ -75,13 +75,13 @@ Traceback (most recent call last):
     output = fn(*args, **kwargs)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 366, in training_step
     return self.model.training_step(*args, **kwargs)
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 230, in training_step
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 193, in training_step
     return self.step(batch, split="train")
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 207, in step
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 170, in step
     loss, accuracy = self.handle_mc_type_2(input_ids, patch_images, targets)
   File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 127, in handle_mc_type_2
     loss = self.compute_loss(logits_for_options, targets)
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 192, in compute_loss
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 155, in compute_loss
     return self.loss(logits.view(-1, logits.size(-1)), labels.view(-1))
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1110, in _call_impl
     return forward_call(*input, **kwargs)
@@ -94,9 +94,9 @@ RuntimeError: CUDA error: device-side assert triggered
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 620, in <module>
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 583, in <module>
     main()
-  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 603, in main
+  File "/gaueko0/users/ietxarri010/GrAL_Irene/mm_okvqa_finetuning.py", line 566, in main
     trainer.fit(model, datamodule)
   File "/gscratch/users/asalaberria009/env/p39-cu115/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 520, in fit
     call._call_and_handle_interrupt(
