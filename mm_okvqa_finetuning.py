@@ -117,41 +117,15 @@ class LitModel(pl.LightningModule):
         decoder_input_ids = torch.ones((input_ids.size(0), seq_len), dtype=torch.long) * self.tokenizer.bos_token_id
         decoder_input_ids = decoder_input_ids.to(self.device)
 
-        # Ajustar dimensiones si hay discrepancias
         if decoder_input_ids.size(1) != input_ids.size(1):
             print(f"Warning: Mismatched decoder_input_ids dimensions. Fixing...")
             decoder_input_ids = decoder_input_ids[:, :input_ids.size(1)]
 
-        # Pasar por el modelo
         outputs = self.model(input_ids, patch_images=patch_images, decoder_input_ids=decoder_input_ids)
 
-        # Extraer logits para las opciones
         logits_for_options = outputs["logits"][:, -1, self.option_tokens]
-
-        # Validaciones
-        vocab_size = self.model.config.vocab_size  # Obtener tamaño del vocabulario
-        assert (self.option_tokens >= 0).all() and (self.option_tokens < vocab_size).all(), (
-            f"Invalid option tokens: {self.option_tokens}, Expected range: [0, {vocab_size - 1}]"
-        )
-
-        num_classes = logits_for_options.size(-1)  # num_classes = len(self.option_tokens)
-
-        # Validar dimensiones de logits y targets
-        assert logits_for_options.dim() == 2, (
-            f"Logits for options must have 2 dimensions (batch_size, num_classes), got: {logits_for_options.shape}"
-        )
-        assert targets.dim() == 1, f"Targets must have 1 dimension (batch_size,), got: {targets.shape}"
-        assert logits_for_options.size(0) == targets.size(0), (
-            f"Batch size mismatch: logits size {logits_for_options.size(0)} vs targets size {targets.size(0)}"
-        )
-        assert (targets >= 0).all() and (targets < num_classes).all(), (
-            f"Targets out of range. Targets: {targets}, Expected range: [0, {num_classes - 1}]"
-        )
-
-        # Calcular pérdida
         loss = self.compute_loss(logits_for_options, targets)
-
-        # Calcular precisión
+        
         probabilities = torch.nn.functional.softmax(logits_for_options, dim=-1)
         y_pred = torch.argmax(probabilities, dim=-1)
         accuracy = self.compute_accuracy_score(targets, y_pred)
@@ -159,7 +133,6 @@ class LitModel(pl.LightningModule):
         return loss, accuracy
 
 
-    
     def handle_mc_type_1(self, input_ids, patch_images, targets):
         label_ids = self.tokenizer(targets, padding=True, truncation=True, return_tensors="pt").input_ids[:, 1:].to(self.device)
     
